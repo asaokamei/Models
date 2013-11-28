@@ -44,10 +44,9 @@ abstract class FormBase
      */
     public function getSelector( $key )
     {
-        if( !$def = $this->get( $key ) ) {
+        if( !$class = $this->get( $key ) ) {
             return null;
         }
-        $class  = $def[0];
         if( array_key_exists( strtolower( $class ), $this->type ) ) {
             $class = $this->type[ strtolower( $class ) ];
         }
