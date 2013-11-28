@@ -1,5 +1,12 @@
 <?php
 
+/**
+ * Interface ValidateInterface
+ * 
+ * @method pushChar()
+ * @method pushMail()
+ * @method eucjpHankaku()
+ */
 interface ValidateInterface
 {
     public function is( $type );
