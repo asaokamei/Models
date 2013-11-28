@@ -1,6 +1,6 @@
 <?php
 
-class ValidationBadTokenException extends RuntimeException {}
+class TokenBadTokenException extends RuntimeException {}
 
 class Token
 {
@@ -57,17 +57,17 @@ class Token
     }
 
     /**
-     * @throws ValidationBadTokenException
+     * @throws TokenBadTokenException
      * @return bool
      */
     public function verifyToken( $token=null ) 
     {
         if( !$token ) $token = $_POST[ $this->tokenName ];
         if( !$token ) {
-            throw new ValidationBadTokenException( 'no token to verify' );
+            throw new TokenBadTokenException( 'no token to verify' );
         }
         if( !in_array( $token, $_SESSION[ $this->tokenName ] ) ) {
-            throw new ValidationBadTokenException( 'bad token' );
+            throw new TokenBadTokenException( 'bad token' );
         }
         foreach( $_SESSION[ $this->tokenName ] as $key => $value ) {
             if( $value == $token ) {

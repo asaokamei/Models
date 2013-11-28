@@ -2,7 +2,7 @@
 
 /**
  * Interface ValidateInterface
- * 
+ *
  * @method pushChar()
  * @method pushMail()
  * @method eucjpHankaku()
