@@ -1,6 +1,6 @@
 <?php
 
-class htmlSelect extends html_forms
+class Html_Select extends html_forms
 {
     var $name;
     var $style;

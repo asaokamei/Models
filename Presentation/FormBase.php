@@ -28,7 +28,7 @@ abstract class FormBase
 
     /**
      * @param string $key
-     * @return null|htmlSelect
+     * @return null|Html_Select
      */
     public function getSelInstance( $key )
     {
@@ -40,7 +40,7 @@ abstract class FormBase
 
     /**
      * @param $key
-     * @return null|htmlSelect
+     * @return null|Html_Select
      */
     public function getSelector( $key )
     {
