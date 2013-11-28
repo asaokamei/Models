@@ -6,37 +6,48 @@
  *
 */
 if( !defined( "WORDY" ) ) define( "WORDY",  0 ); // very wordy...
-// include necessary libraries...
-require_once( dirname( __FILE__ ) . "/../class/class.ext_func.php" );
-require_once( dirname( __FILE__ ) . "/../class/class.web_io.php" );
 require_once( dirname( __FILE__ ) . "/Db_Rdb.php" );
 
 // Basic constants
 if( !defined( 'FORMSQL_ALL_LOG' ) ) 
 	 define(  "FORMSQL_ALL_LOG",                  FALSE );
 
-define( "FORMSQL_USE_POSTGRESQL",         "PgSQL" ); // PostgreSQL (before 8.x)
 define( "FORMSQL_USE_POSTGRESQL8x",   "PgSQL.8.x" ); // PostgreSQL (after  8.x)
 define( "FORMSQL_USE_MYSQL",              "MySQL" ); // MySQL (before 5.0)
 define( "FORMSQL_USE_MYSQL5_EUC",   "MySQL.5-EUC" ); // MySQL (after 5.0 and using EUC)
-define( "FORMSQL_USE_ODBC_DB",             "ODBC" );
-define( "FORMSQL_USE_CACHE_DB",           "Cache" );
 define( "FORMSQL_USE_SQLITE",            "SQLite" ); // SQLite
 define( "FORMSQL_USE_PDO",            "PDO-class" ); // PDO class
-// define error type numbers
-define( "FORMSQL_ERR_DB_CONNECT_FAILED", 1001 );
-define( "FORMSQL_ERR_SQ_EXECL_FAILED",   1002 );
 
-define( "FORMSQL_ERR_SQL_MISSING_COLS",  2001 );
-define( "FORMSQL_ERR_SQL_MISSING_VALS",  2002 );
-define( "FORMSQL_ERR_SQL_MISSING_TABLE", 2003 );
-define( "FORMSQL_ERR_SQL_MISSING_WHERE", 2004 );
+if( !function_exists( 'have_value' ) ) {
+    /**
+     * @param mixed $value
+     * @return bool
+     */
+    function have_value( $value ) 
+    {
+        if( is_array( $value ) ) {
+            return( count( $value ) );
+        }
+        if( is_object( $value ) ) {
+            return TRUE;
+        }
+        if( "$value" == "" ) {
+            return FALSE;
+        }
+        return true;
+    }
+}
 
+if( !function_exists( 'wordy_table' ) ) {
+    function wordy_table( $value ) {
+        var_dump( $value );
+    }
+}
 // +-----------------------------------------------------------+
 
 class DbSqlException extends Exception {}
 
-class form_sql
+class Db_Sql
 {
     // variables to build SQL statement...
     var $cols;        // array of columns used in SELECT sql statement. 
@@ -50,6 +61,8 @@ class form_sql
     var $misc;        // misc statement such as LIMIT
 	var $limit;       // limit 
 	var $offset;      // offset
+    var $distinct  = false;
+    var $forUpdate = false;
     
     // variables to manage SQL and DB connection...
     var $style;       // style of SQL (SELECT, UPDATE, etc.)
@@ -63,45 +76,32 @@ class form_sql
     var $err_all;     // all the error number as it occured
     
     // variables for multiple rdb systems.
+    /**
+     * @var Db_Rdb
+     */
     var $rdb;
 	
     /* -------------------------------------------------------------- */
-    function form_sql()
+    /**
+     * @param Db_Rdb $rdb
+     */
+    function __construct( $rdb )
     {
         if( defined( 'FORMSQL_DBCON_FNAME' ) && file_exists( FORMSQL_DBCON_FNAME ) ) { // found db_connection setup file...
             include FORMSQL_DBCON_FNAME;
-            $this->db_con = $db_inc[0];
         }
-        else {
-            $this->db_con = NULL;
-        }
-        if( !defined( "FORMSQL_DB_TYPE" ) ) 
-            define( "FORMSQL_DB_TYPE", FORMSQL_USE_POSTGRESQL );
-        
-        $this->rdb = new RDB();
+        $this->rdb = $rdb;
 		$this->count_p_in_where=0;
 		$this->err_num=0;
 		if( WORDY ) echo "form_sql instance...<br>\n";
     }
-	/* -------------------------------------------------------------- */
-    static function & getInstance()
+
+    /**
+     * @return Db_Sql
+     */
+    public static function factory()
     {
-        static $form_sql_;
-        if( !isset( $form_sql_ ) ) {
-            $form_sql_ = new form_sql();
-        }
-        return $form_sql_;
-    }
-	/* -------------------------------------------------------------- */
-    static function & getDbConn( $db_conn )
-    {
-        static $singleton_conn;
-        if( !isset( $singleton_conn[ $db_conn ] ) ) {
-			$sql = new form_sql();
-			$sql->dbConnect( $db_conn, TRUE );
-            $singleton_conn[ $db_conn ] = & $sql;
-        }
-        return $singleton_conn[ $db_conn ];
+        return new Db_Sql( new Db_Rdb() );
     }
 	/* -------------------------------------------------------------- */
     function clear() {
@@ -158,11 +158,6 @@ class form_sql
 		return $this->where;
     }
     /* -------------------------------------------------------------- */
-    function xxx_closeWhereParenthesis( $parenthesis="CLOSE" ) {
-		$this->addWhereParenthesis( $parenthesis );
-		// maybe we should not use...
-    }
-    /* -------------------------------------------------------------- */
     function addWhereParenthesis( $parenthesis="ADD", $type=NULL ) {
 		$parenthesis = strtoupper( $parenthesis );
 		switch( $parenthesis ) {
@@ -212,6 +207,14 @@ class form_sql
         $this->offset = $offset;
     }
     /* -------------------------------------------------------------- */
+    function setDistinct( $distinct = true ) {
+        $this->distinct = $distinct;
+    }
+    /* -------------------------------------------------------------- */
+    function setForUpdate( $for=true ) {
+        $this->forUpdate = $for;
+    }
+    /* -------------------------------------------------------------- */
     function setErrNum( $err_num ) {
         $this->err_num = $err_num;
     }
@@ -224,17 +227,16 @@ class form_sql
         $this->func["$var"] = $func;
     }
     /* -------------------------------------------------------------- */
-    function delVal( $var_name ) {
-        while( list( $var, $val ) = each( $this->vals ) )
-        {
-            if( $var == $var_name ) unset( $this->vals["$var_name"] );
+    function delVal( $var_name ) 
+    {
+        if( isset( $this->vals[ $var_name ] ) ) {
+            unset( $this->vals[ $var_name ] );
         }
     }
     /* -------------------------------------------------------------- */
     function delFunc( $var_name ) {
-        while( list( $var, $val ) = each( $this->func ) )
-        {
-            if( $var == $var_name ) unset( $this->func["$var_name"] );
+        if( isset( $this->func[ $var_name ] ) ) {
+            unset( $this->func[ $var_name ] );
         }
     }
     /* -------------------------------------------------------------- */
@@ -242,29 +244,17 @@ class form_sql
     {
         if( WORDY > 1 ) echo "<br><i>formSQL::dbConnect( $db_con )...</i><br>\n";
         
-		// connecting to a database
-        if( !have_value( $db_con ) )  // no db_connection method specified...
-		{
-			if( defined( 'FORMSQL_DBCON_FNAME' ) && file_exists( getcwd() . "/" . FORMSQL_DBCON_FNAME ) ) { 
-				// found db_connection setup file...
-				include( getcwd() . "/" . FORMSQL_DBCON_FNAME );
-				if( WORDY > 3 ) { echo "Reading from " . getcwd() . '/'.FORMSQL_DBCON_FNAME . "<br>\n";
-				echo ' -- DB_CON: ' . $db_con . "<br>\n";}
-			}
-			else {
-				// use standard db_con value defined in this file
-				$db_con = FORMSQL_DEFAULT_DBCON;
-			}
+        if( !defined( 'FORMSQL_DEFAULT_DBCON' ) ) {
+            throw new DbSqlException( 'FORMSQL_DEFAULT_DBCON not set: set connection settings.' );
         }
-        $conn = $this->rdb->connect( $db_con, $new );
+        $conn = $this->rdb->connect( FORMSQL_DEFAULT_DBCON, $new );
         
 		// check if the connection is made
         if( !$conn ) {
-            $this->_reportError( FORMSQL_ERR_DB_CONNECT_FAILED, "dbConnect( \"{$db_con}\" )" );
-            return FALSE;
+            throw new DbSqlException( 'failed to connect to db.' );
         }
         elseif( WORDY > 1 ) {
-            echo "Connected to DB successfully (resource#: {$conn})<br>\n";
+            echo "Connected to DB successfully<br>\n";
         }
         
         return $conn; 
@@ -287,8 +277,6 @@ class form_sql
                 $sql = $this->makeSqlUpdate();
                 break;
             case "SELECT":
-            case "SELECT DISTINCT":
-            case "SELECT FOR UPDATE":
                 $sql = $this->makeSqlSelect();
                 break;
             case "DELETE":
@@ -366,8 +354,7 @@ class form_sql
             else                         { $update .= ", $var=$val"; }
         }
         if( !$update ) {
-            $this->_reportError( FORMSQL_ERR_SQL_MISSING_VALS, "make_sql_update: missing vals." );
-            return FALSE;
+            throw new DbSqlException( "make_sql_update: missing vals." );
         }
         
         $sql .= " SET $update "; 
@@ -383,7 +370,7 @@ class form_sql
 			throw new DbSqlException( 'makeSqlSelect: missing table' );
         }
         if( !$this->cols  ) { $this->cols = array( "*" ); }
-        if( $this->style == "SELECT DISTINCT" ) {
+        if( $this->distinct ) {
             $sql = "SELECT DISTINCT ";
         }
         else {
@@ -400,8 +387,7 @@ class form_sql
         if( have_value( $this->order_by ) ) $sql .= " ORDER BY {$this->order_by}";
         if( have_value( $this->misc     ) ) $sql .= " {$this->misc}";
 		if( $this->limit  > 0 ) {
-			switch( FORMSQL_DB_TYPE ) {
-				case FORMSQL_USE_POSTGRESQL:
+			switch( $this->rdb->getDbType() ) {
 				case FORMSQL_USE_POSTGRESQL8x:
 					$sql .= " LIMIT {$this->limit}";
 					if( $this->offset > 0 ) $sql .= " OFFSET {$this->offset}";
@@ -415,7 +401,7 @@ class form_sql
 					break;
 			}
 		}
-        if( $this->style == "SELECT FOR UPDATE" ) {
+        if( $this->forUpdate ) {
             $sql .= " FOR UPDATE";
         }
         $sql .= ";";
@@ -454,9 +440,7 @@ class form_sql
         if( !$sqlh )
         {
             $msg = $this->rdb->errorMessage();
-			throw new Exception( $msg . ', SQL:' . $sql );
-            $this->_reportError( FORMSQL_ERR_SQ_EXECL_FAILED, "execSQL( \"{$sql}\" )\n" . $msg );
-            return FALSE;
+			throw new DbSqlException( $msg . ', SQL:' . $sql );
         }
         
         if( FORMSQL_ALL_LOG ) /*** FORMSQL_ALL_LOG for logging SQL ***/
@@ -471,10 +455,10 @@ class form_sql
             $item[] = sprintf( "%f", $time2 - $time1 );
             $item[] = $sql;
             if( $this->style == "SELECT" ) {
-                $num_effected = $this->rdb->numRows( $this->sqlh );
+                $num_effected = $this->rdb->numRows( $sqlh );
             }
             elseif( $this->style == "UPDATE" || $this->style == "INSERT" || $this->style == "DELETE" ){
-                $num_effected = $this->rdb->cmdtuples( $this->sqlh );
+                $num_effected = $this->rdb->cmdtuples( $sqlh );
             }
             else $num_effected = "?{$this->style}?";
             $item[] = "Rows({$num_effected})";
@@ -494,38 +478,12 @@ class form_sql
         return $sqlh;
     }
     /* -------------------------------------------------------------- */
-    function getResult()
-    {
-        if( WORDY ) {
-			echo "<br><i>formSQL::get_result:...</i><br>\n";
-			echo "-- this method is obsolete... use fetch_all instead...<br>\n";
-		}
-        //if( !$this->sqlh ) return array( array(), 0 );
-		
-        $num = $this->rdb->numRows(); 
-        if( WORDY > 2 ) echo "-- number of rows: $num <br>\n";
-        if( $num == 0 ) {
-			$td = array();
-		}
-		elseif( FALSE && $num == 1 ) {
-			$td = $this->fetchRow( 0 );
-		}
-		elseif( $num > 0 ) {
-			$td0 = $this->fetchRow( 0 );
-			$num = $this->fetchAll( $td1 );
-			$td  = array_merge( $td0, $td1 );
-		}
-		return array( $td, $num );
-    }
-    /* -------------------------------------------------------------- */
     function dbFree()
     {
         if( WORDY ) echo "<i>formSQL::db_free: freeing sql handle...</i><br>\n";
 		if( !$this->rdb->free() ) {
-			if( WORDY ) echo "<b><font color=red>rdb::close: failed to free result...</font></b><br>\n";
 			return FALSE;
 		}
-        if( WORDY ) echo "db_free: freed result to DB...<br>\n";
         return TRUE;
     }
     /* -------------------------------------------------------------- */
@@ -534,10 +492,8 @@ class form_sql
         if( WORDY ) echo "<i>formSQL::db_close: closing connection/result to DB...</i><br>\n";
 		$this->rdb->free();
 		if( !$this->rdb->close() ) {
-			if( WORDY ) echo "<b><font color=red>rdb::close: failed to close db...</font></b><br>\n";
 			return FALSE;
 		}
-        if( WORDY ) echo "db_close: closed connection/result to DB...<br>\n";
         return TRUE;
     }
     /* -------------------------------------------------------------- */
@@ -546,11 +502,6 @@ class form_sql
         // taken from www.php.net, about microtime
         list($usec, $sec) = explode(" ",microtime());
         return ((float)$usec + (float)$sec);
-    }
-    /* -------------------------------------------------------------- */
-    function errEcho()
-    {
-        echo "<b><font color=red>formSQL Error: {$this->err_num}, {$this->err_msg} </font></b><br>\n";
     }
     /* -------------------------------------------------------------- */
     function _reportError( $err_num, $err_msg )
@@ -599,20 +550,12 @@ class form_sql
     /* -------------------------------------------------------------- */
     function nextCounter( $next_name ) 
     {
-        if( WORDY ) echo "<br><i>next( $next_name ), DB=" . FORMSQL_DB_TYPE . " </i><br>\n";
-        switch( FORMSQL_DB_TYPE ) 
+        if( WORDY ) echo "<br><i>next( $next_name ), DB=" . $this->rdb->getDbType() . " </i><br>\n";
+        switch( $this->rdb->getDbType() ) 
         {
-            case FORMSQL_USE_POSTGRESQL:
             case FORMSQL_USE_POSTGRESQL8x:
                 $this->execSQL( "SELECT nextval( '{$next_name}' );" );
-                list( $val, $num ) = $this->getResult();
-                $next_val = $val["nextval"];
-                return $next_val;
-            
-            case FORMSQL_USE_ODBC_DB:
-            case FORMSQL_USE_CACHE_DB:
-                // PHP manual: may not work. 
-                return @odbc_num_rows( $sqlh );
+                return $this->rdb->result(0,0);
             
             case FORMSQL_USE_MYSQL:
             case FORMSQL_USE_MYSQL5_EUC:
@@ -630,7 +573,7 @@ class form_sql
         if( WORDY > 1 ) echo "<br><i>formSQL::fetchNumRow()...</i><br>\n";
         
         $num = $this->rdb->numRows(); 
-        if( WORDY > 1 ) echo "num=$num <br>\n";
+        if( WORDY > 1 ) echo "num={$num} <br>\n";
         
         return $num;
     }
@@ -647,7 +590,7 @@ class form_sql
     /* -------------------------------------------------------------- */
     function fetchAll( &$td )
     {
-        if( WORDY > 1 ) echo "<br><i>formSQL::fetchAll( $data )...</i><br>\n";
+        if( WORDY > 1 ) echo "<br><i>formSQL::fetchAll( \$data )...</i><br>\n";
 		$num = $this->rdb->numRows();
 		if( WORDY > 3 ) echo "-- number of rows: {$num} <br>\n";
 		
@@ -671,8 +614,6 @@ class form_sql
 		else {
 			return $this->rdb->fetchAssoc( $row );
 		}
-        
-        return $row_data;
     }
     /* -------------------------------------------------------------- */
     function getCount( $option=NULL )
@@ -704,13 +645,15 @@ class form_sql
 		
 		if( !$this->table ) return 0;
 		if( $option == 'DISTINCT' ) {
-			$distinct = 'DISTINCT';
-		}
+			$distinct = ' DISTINCT';
+		} else {
+            $distinct = '';
+        }
 		if( !$this->cols  )               { $cols = "*"; }
 		elseif( is_array( $this->cols ) ) { $cols = implode( ", ", $this->cols ); }
 		else                              { $cols = $this->cols; }
 		
-        $sql = "SELECT {$cols} FROM {$this->table}";
+        $sql = "SELECT{$distinct} {$cols} FROM {$this->table}";
         if( have_value( $this->where    ) ) $sql .= " WHERE {$this->where}";
         if( have_value( $this->group    ) ) $sql .= " GROUP BY {$this->group}";
         if( have_value( $this->having   ) ) $sql .= " HAVING {$this->having}";

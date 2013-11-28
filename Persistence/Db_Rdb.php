@@ -1,24 +1,28 @@
 <?php
 if( !defined( "WORDY" ) ) define( "WORDY",  0 ); // very wordy...
 
-/***
-  class RDB
-  by Asao Kamei @ WorkSpot.JP, 
-  to be replaced by PEAR's DB (or equivalent class)... 
-***/
+/**
+ * Class RdbConnException
+ */
+class RdbConnException extends Exception {}
 
-class RdbConnException extends Exception {
-}
-
-class rdb
+class Db_Rdb
 {
 	var $db_type; // type of db; postgresql, mysql, sqlite, etc. 
     var $db_name; // db name used for MySQL
-	var $conn;    // db connector resource
-	var $sqlh;    // sql result resource
+    
+    /**
+     * @var Pdo|resource
+     */
+    var $conn;    // db connector resource
+
+    /**
+     * @var PDOStatement|int|resource
+     */
+    var $sqlh;    // sql result resource
     
     /* -------------------------------------------------------------- */
-    function rdb() 
+    function __construct() 
     {
         if( WORDY > 3 ) echo "<br><b>rdb::instance created...</b><br>\n";
     }
@@ -34,7 +38,7 @@ class rdb
 			$this->db_type = FORMSQL_DB_TYPE;
 		}
 		else {
-			$this->db_type = FORMSQL_USE_POSTGRESQL;
+            throw new DbSqlException( 'database type not set. use FORMSQL_DB_TYPE or DB_CONN. ' );
 		}
 		if( WORDY ) echo "rdb::connecting( <b>{$db_con}, $new</b> ) to {$this->db_type}...<br>\n ";
 		$this->conn = FALSE;
@@ -56,7 +60,6 @@ class rdb
 			$this->conn = @sqlite_open( $cons["file"], $cons["mode"] );
 			break;
 		
-		case FORMSQL_USE_POSTGRESQL:
 		case FORMSQL_USE_POSTGRESQL8x:
 			if( !function_exists( 'pg_connect' ) ) {
 				throw new RdbConnException( 'pg_connect not exists' );
@@ -67,14 +70,6 @@ class rdb
 			else {
 				$this->conn = pg_connect( $db_con );
 			}
-			break;
-		
-		case FORMSQL_USE_ODBC_DB:
-		case FORMSQL_USE_CACHE_DB:
-			if( !function_exists( 'odbc_connect' ) ) {
-				throw new RdbConnException( 'odbc_connect not exists' );
-			}
-			$this->conn = @odbc_connect( $cons["dsn"], $cons["user"], $cons["password"] );
 			break;
 		
 		case FORMSQL_USE_MYSQL:
@@ -107,13 +102,9 @@ class rdb
 			if( !$success ) { 
 				$this->conn = FALSE; 
 			}
-			else if( PHP_CHAR_SET == CHAR_CODE_EUC  ) { 
-				$this->exec( 'set names ujis' ); 
-			}
-			else { // default is UTF-8
-				$this->exec( 'set names utf8' ); 
-			}
-			break;
+            // set UTF8 charset. should use DSN via PDO... 
+            $this->exec( 'set names utf8' );
+            break;
 		
 		default:
 			break;
@@ -144,6 +135,15 @@ class rdb
 		if( WORDY > 5 ) wordy_table( $return_array, 'parseDbCon' );
         return $return_array;
     }
+
+    /**
+     * @return string
+     */
+    public function getDbType()
+    {
+        return $this->db_type;
+    }
+
     /* -------------------------------------------------------------- */
     function query( $sql ) 
 	{
@@ -186,7 +186,6 @@ class rdb
                 $this->sqlh = @sqlite_exec( $this->conn, $sql );
             	break;
             
-            case FORMSQL_USE_POSTGRESQL:
             case FORMSQL_USE_POSTGRESQL8x:
 				if( function_exists( 'pg_query' ) ) {
 	                $this->sqlh = @pg_query( $this->conn, $sql );
@@ -194,11 +193,6 @@ class rdb
 				else {
 	                $this->sqlh = @pg_exec( $this->conn, $sql );
 				}
-            	break;
-            
-            case FORMSQL_USE_ODBC_DB:
-            case FORMSQL_USE_CACHE_DB:
-                $this->sqlh = @odbc_exec( $this->conn, $sql );
             	break;
             
             case FORMSQL_USE_MYSQL:
@@ -229,71 +223,12 @@ class rdb
                 $error_code = @sqlite_last_error( $this->conn );
 				return sqlite_error_string( $error_code );
             
-            case FORMSQL_USE_POSTGRESQL:
             case FORMSQL_USE_POSTGRESQL8x:
                 return @pg_errormessage( $this->conn );
-            
-            case FORMSQL_USE_ODBC_DB:
-            case FORMSQL_USE_CACHE_DB:
-                return @odbc_errormsg( $this->conn );
             
             case FORMSQL_USE_MYSQL:
             case FORMSQL_USE_MYSQL5_EUC:
                 return @mysql_error( $this->conn );
-			default:
-        }
-        return FALSE;
-    }
-    /* -------------------------------------------------------------- */
-    function numFields() 
-	{
-        switch( $this->db_type ) 
-        {
-            case FORMSQL_USE_PDO:
-                if( is_object( $this->sqlh ) ) { 
-					return $this->sqlh->columnCount(); 
-				}
-				else { 
-					return 0; 
-				}
-			
-            case FORMSQL_USE_POSTGRESQL:
-            case FORMSQL_USE_POSTGRESQL8x:
-				if( function_exists( pg_num_fields ) ) {
-	                return @pg_num_fields( $this->sqlh );
-				}
-                return @pg_numfields( $this->sqlh );
-            
-            case FORMSQL_USE_ODBC_DB:
-            case FORMSQL_USE_CACHE_DB:
-                return @odbc_num_fields( $this->sqlh );
-            
-            case FORMSQL_USE_MYSQL:
-            case FORMSQL_USE_MYSQL5_EUC:
-                return mysql_num_fields( $this->sqlh );
-			default:
-        }
-        return FALSE;
-    }
-    /* -------------------------------------------------------------- */
-    function fieldName( $col ) 
-	{
-        switch( $this->db_type ) 
-        {
-            case FORMSQL_USE_POSTGRESQL:
-            case FORMSQL_USE_POSTGRESQL8x:
-				if( function_exists( pg_field_name ) ) {
-	                return @pg_field_name( $this->sqlh, $col );
-				}
-                return @pg_FieldName( $this->sqlh, $col );
-            
-            case FORMSQL_USE_ODBC_DB:
-            case FORMSQL_USE_CACHE_DB:
-                return @odbc_field_name( $this->sqlh, $col );
-            
-            case FORMSQL_USE_MYSQL:
-            case FORMSQL_USE_MYSQL5_EUC:
-                return @mysql_field_name( $this->sqlh, $col );
 			default:
         }
         return FALSE;
@@ -318,28 +253,21 @@ class rdb
 					$data = sqlite_current( $this->sqlh, SQLITE_NUM ); 
 					return $data[ $col ];
 				}
-				else { 
-					return FALSE; 
-				}
-				
-            case FORMSQL_USE_POSTGRESQL:
+                return FALSE;
+
             case FORMSQL_USE_POSTGRESQL8x:
-				if( function_exists( pg_fetch_result ) ) {
+				if( function_exists( 'pg_fetch_result' ) ) {
 	                return @pg_fetch_result( $this->sqlh, $row, $col );
 				}
-                return @pg_Result( $this->sqlh, $row, $col );
-            
-            case FORMSQL_USE_ODBC_DB:
-            case FORMSQL_USE_CACHE_DB:
-                // PHP manual: may not work. 
-                $rowdata = @odbc_fetchRow( $this->sqlh, $row );
-                return $rowdata[ $col ];
+                pg_Result( $this->sqlh, $row, $col );
+                break;
             
             case FORMSQL_USE_MYSQL:
             case FORMSQL_USE_MYSQL5_EUC:
                 $result = @mysql_result( $this->sqlh, $row, $col );
 				if( WORDY > 5 ) echo "rdb::result( $row, $col ) => '{$result}'<br>";
 				return $result;
+            
 			default:
         }
         return FALSE;
@@ -365,16 +293,11 @@ class rdb
 					return $this->sqlh; 
 				}
 			
-            case FORMSQL_USE_POSTGRESQL:
             case FORMSQL_USE_POSTGRESQL8x:
 				if( function_exists( 'pg_num_rows' ) ) {
 	                return @pg_num_rows( $this->sqlh );
 				}
                 return @pg_NumRows( $this->sqlh );
-            
-            case FORMSQL_USE_ODBC_DB:
-            case FORMSQL_USE_CACHE_DB:
-                return @odbc_num_rows( $this->sqlh );
             
             case FORMSQL_USE_MYSQL:
             case FORMSQL_USE_MYSQL5_EUC:
@@ -405,7 +328,6 @@ class rdb
 					return FALSE; 
 				}
 				
-            case FORMSQL_USE_POSTGRESQL:
             case FORMSQL_USE_POSTGRESQL8x:
 	            return  @pg_fetch_assoc( $this->sqlh, $row );
 				
@@ -414,15 +336,11 @@ class rdb
 				if( is_int( $row ) && $row >= 0 ) {
 					if( @mysql_data_seek( $this->sqlh, $row ) ) {
 						$result = @mysql_fetch_assoc( $this->sqlh );
-						if( WORDY > 5 ) wordy_table( $result, "rdb::fetchAssoc( $row )" );
 						return $result;
 					}
 				}
             	break;
 				
-            case FORMSQL_USE_ODBC_DB:
-            case FORMSQL_USE_CACHE_DB:
-                return @odbc_fetchRow( $this->sqlh, $row );
 			default:
 				break;
         }
@@ -449,21 +367,15 @@ class rdb
 					return FALSE;
 				}
 			
-            case FORMSQL_USE_POSTGRESQL:
             case FORMSQL_USE_POSTGRESQL8x:
-                return @pg_cmdtuples( $this->sqlh );
+                /** @noinspection PhpVoidFunctionResultUsedInspection */
+            return pg_cmdtuples( $this->sqlh );
             
             case FORMSQL_USE_MYSQL:
             case FORMSQL_USE_MYSQL5_EUC:
                 // PHP manual: may not work. 
                 return @mysql_affected_rows( $this->sqlh );
 			
-            case FORMSQL_USE_ODBC_DB:
-            case FORMSQL_USE_CACHE_DB:
-			default:
-                // PHP manual: may not work. 
-                return @odbc_num_rows( $this->sqlh );
-            
         }
         return FALSE;
     }
@@ -473,7 +385,6 @@ class rdb
 		if( !$this->conn ) return TRUE;
         switch( $this->db_type ) 
         {
-            case FORMSQL_USE_POSTGRESQL:
             case FORMSQL_USE_POSTGRESQL8x:
 				if( pg_close( $this->conn ) ) {
 					$this->conn = NULL;
@@ -500,7 +411,6 @@ class rdb
 		if( !$this->sqlh ) return TRUE;
         switch( $this->db_type ) 
         {
-            case FORMSQL_USE_POSTGRESQL:
             case FORMSQL_USE_POSTGRESQL8x:
                 if( @pg_freeresult( $this->sqlh ) ) {
 					$this->sqlh = NULL;
@@ -510,10 +420,8 @@ class rdb
             
             case FORMSQL_USE_MYSQL:
             case FORMSQL_USE_MYSQL5_EUC:
-                if( @mysql_freeresult( $this->sqlh ) ) {
-					$this->sqlh = NULL;
-					return TRUE;
-				}
+                mysql_freeresult( $this->sqlh );
+                $this->sqlh = NULL;
             	break;
             
 			default:
@@ -530,7 +438,6 @@ class rdb
 			default:
                 return @$this->exec( "BEGIN;" );
         }
-        return FALSE;
     }
     /* -------------------------------------------------------------- */
     function commit() 
@@ -543,7 +450,6 @@ class rdb
 			default:
                 return @$this->exec( "COMMIT;" );
         }
-        return FALSE;
     }
     /* -------------------------------------------------------------- */
     function rollback() 
@@ -556,25 +462,23 @@ class rdb
 			default:
                 return @$this->exec( "ROLLBACK;" );
         }
-        return FALSE;
     }
     /* -------------------------------------------------------------- */
     function lockTable( $table ) 
 	{
         switch( $this->db_type ) 
         {
-            case FORMSQL_USE_POSTGRESQL:
             case FORMSQL_USE_POSTGRESQL8x:
                 return @$this->exec( "LOCK TABLE {$table} IN ACCESS EXCLUSIVE MODE;" );
             
 			default:
                 return @$this->exec( "LOCK TABLE {$table};" );
         }
-        return FALSE;
     }
     /* -------------------------------------------------------------- */
     function lastId() 
 	{
+        $last_id = FALSE;
         switch( $this->db_type ) 
         {
             case FORMSQL_USE_PDO:
@@ -585,10 +489,6 @@ class rdb
 				$last_id = @sqlite_last_insert_rowid( $this->conn );
 				break;
 			
-            case FORMSQL_USE_POSTGRESQL:
-                $last_id = @pg_last_oid( $this->sqlh );
- 				break;
-           
             case FORMSQL_USE_POSTGRESQL8x:
 				
 				$sql = "SELECT LASTVAL();";
@@ -600,10 +500,6 @@ class rdb
             case FORMSQL_USE_MYSQL5_EUC:
                 return @mysql_insert_id( $this->conn );
             
-            case FORMSQL_USE_ODBC_DB:
-            case FORMSQL_USE_CACHE_DB:
-			default:
-				$last_id = FALSE;
         }
         return $last_id;
     }

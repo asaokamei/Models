@@ -73,7 +73,7 @@ function pn_disp_link( &$pn, $url, $type, $word=NULL, $disp=TRUE )
 }
 
 /* ============================================================================ */
-class prev_next
+class DB_PrevNext
 {
     var $pgid; // page id number
     var $rows; // number of items in page
@@ -123,7 +123,7 @@ class prev_next
                 $this->args[ "$key" ] = $val;
                 break;
             }
-			if( WORDY > 3 ) echo "{$keys}=>{$val}<br>";
+			if( WORDY > 3 ) echo "{$key}=>{$val}<br>";
         }
         
         return TRUE;

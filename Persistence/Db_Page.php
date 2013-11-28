@@ -7,95 +7,38 @@
    date   : 2003/04/16 ~ 
  * ============================================================================ */
 if( !defined( "WORDY" ) ) define( "WORDY",  0 ); // very wordy...
-require_once( "class.db_sql.php" );
-require_once( dirname( __FILE__ ) . '/../class/class.prev_next.php' );
+require_once( "Db_Sql.php" );
+require_once( dirname( __FILE__ ) . '/Db_PrevNext.php' );
 
 
-/* ============================================================================ */
-class dao_page 
+class Db_Page extends Db_Sql
 {
-	var $pn;
-	var $dao_obj;
+    /**
+     * @var Db_PrevNext
+     */
+    var $pn;
 	/* ------------------------------------------------------------------------ */
-	function dao_page( $dao_obj, $where=NULL )
+    /**
+     * @param Db_Rdb $rdb
+     */
+    function __construct( $rdb )
 	{
-		$this->dao = & $dao_obj;
-		$this->pn  = new prev_next();
-		
-		if( !is_null( $where ) ) {
-			$this->setSql( $where );
-		}
+		parent::__construct( $rdb );
+		$this->pn  = new DB_PrevNext();
 	}
-	/* ------------------------------------------------------------------------ */
-	function setSql( $where, $table=NULL, $order=NULL, $cols='*', $group=NULL )
-	{
-		if( !$table ) {
-			$table = $this->dao->table;
-		}
-		$this->dao->sql->clear();
-		$this->dao->sql->setCols(  $cols );
-		$this->dao->sql->setTable( $table );
-		$this->dao->sql->setWhere( $where );
-		if( !is_null( $group ) ) {
-			$this->dao->sql->setGroup( $group );
-		}
-		if( $order ) {
-			$this->dao->sql->setOrder( $order );
-		}
-		else {
-			$this->dao->sql->setOrder( $this->dao->id_name );
-		}
-	}
+    
+    /**
+     * @return Db_Page
+     */
+    public static function factory()
+    {
+        return new Db_Page( new Db_Rdb() );
+    }
 	/* ------------------------------------------------------------------------ */
 	function setOptions( $options=array(), $sql_option=NULL )
 	{
 		$this->pn->setOptions( $options );
-		if( !$this->pn->total ) {
-			$this->pn->setTotal( $this->dao->sql->fetchCount( $sql_option ) );
-		}
-		$this->setPage();
-	}
-	/* ------------------------------------------------------------------------ */
-	function setPage()
-	{
-		$limit  = $this->pn->getAmount();
-		$offset = $this->pn->getOffset();
-		$this->dao->sql->setLimit( $limit, $offset );
-	}
-	/* ------------------------------------------------------------------------ */
-	function getPageData( &$data, $option=NULL )
-	{
-		if( $option == 'DISTINCT' ) {
-			$this->dao->sql->makeSQL( 'SELECT DISTINCT' );
-		}
-		else {
-			$this->dao->sql->makeSQL( 'SELECT' );
-		}
-		$this->dao->sql->execSQL();
-		return $this->dao->sql->fetchAll( $data );
-	}
-	/* ------------------------------------------------------------------------ */
-	function getPrevNext()
-	{
-		return $this->pn->getPrevNext();
-	}
-}
-
-/* ============================================================================ */
-class db_page extends form_sql
-{
-	var $pn;
-	/* ------------------------------------------------------------------------ */
-	function db_page( $options=array() )
-	{
-		$this->form_sql();
-		$this->pn  = new prev_next();
-	}
-	/* ------------------------------------------------------------------------ */
-	function setOptions( $options=array(), $sql_option=NULL )
-	{
-		$this->pn->setOptions( $options );
-		if( TRUE || !$this->pn->total ) {
+		if( !$this->pn->totl ) {
 			$this->pn->setTotal( $this->fetchCount( $sql_option ) );
 		}
 		$this->setPage();
