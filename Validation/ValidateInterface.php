@@ -6,6 +6,7 @@
  * @method pushChar()
  * @method pushMail()
  * @method eucjpHankaku()
+ * @method pushDate()
  */
 interface ValidateInterface
 {

@@ -68,17 +68,20 @@ class Datum
     {
         $value = $this->get( $key );
         if( $this->selector->get( $key ) == 'text' ) {
-            return $this->h( $value );
+            $value = $this->h( $value );
         }
-        if( $this->selector->get( $key ) == 'textarea' ) {
-            return nl2br( $this->h( $value ) );
+        elseif( $this->selector->get( $key ) == 'textarea' ) {
+            $value = nl2br( $this->h( $value ) );
         }
-        if( $sel = $this->selector->getSelInstance( $key ) ) {
+        elseif( $sel = $this->selector->getSelInstance( $key ) ) {
             $value = array_key_exists( $key, $this->data ) ? $this->data[$key] : "";
             $value = $this->h( $value );
-            return $sel->popHtml( 'NAME', $value, $this->error );
+            $value = $sel->popHtml( 'NAME', $value );
         }
-        return $this->h( $value );
+        else {
+            $value = $this->h( $value );
+        }
+        return $value . $this->popError( $key );
     }
 
     /**
@@ -87,10 +90,24 @@ class Datum
      */
     public function popForm( $key )
     {
+        $form = '';
         if( $sel = $this->selector->getSelInstance( $key ) ) {
             $value = array_key_exists( $key, $this->data ) ? $this->data[$key] : "";
             $value = $this->h( $value );
-            return $sel->popHtml( 'EDIT', $value, $this->error );
+            $form = $sel->popHtml( 'EDIT', $value, $this->error );
+        }
+        $form .= $this->popError( $key );
+        return $form;
+    }
+
+    /**
+     * @param string|mix $key
+     * @return null
+     */
+    public function popError( $key )
+    {
+        if( isset( $this->error[ $key ] ) ) {
+            return $this->error[ $key ];
         }
         return null;
     }
