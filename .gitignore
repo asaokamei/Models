@@ -1,4 +1,7 @@
 # PHPStorm
 .idea/*
 
+# DreamWeaver
+dwsync.xml
+
 /vendor/
