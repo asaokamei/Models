@@ -17,15 +17,26 @@ class Datum
      */
     var $selector;
 
+    /**
+     * @var Filters
+     */
+    var $filter;
+
     // +----------------------------------------------------------------------+
     //  construction and initialization
     // +----------------------------------------------------------------------+
     /**
-     * @param FormBase $selector
+     * @param FormBase      $selector
+     * @param Filters|null  $filter
      */
-    public function __construct( $selector )
+    public function __construct( $selector, $filter=null )
     {
         $this->selector = $selector;
+        if( $filter ) {
+            $this->filter = $filter;
+        } else {
+            $this->filter = new Filters();
+        }
     }
 
     /**
@@ -139,7 +150,29 @@ class Datum
      * @param string $value
      * @return string
      */
-    public function h( $value ) {
-        return htmlspecialchars( $value, ENT_QUOTES, 'UTF-8' );
+    public function h( $value ) 
+    {
+        $value = $this->filter->apply( $value, 'htmlSafe' );
+        return $value;
+    }
+
+    /**
+     * @param string       $value
+     * @param string|array $filter
+     * @return mixed
+     */
+    public function f( $value, $filter )
+    {
+        if( !is_array( $filter ) ) {
+            if( strpos( $filter, '|' ) !== false ) {
+                $filter = explode( '|', $filter );
+            } else {
+                $filter = array( $filter );
+            }
+        }
+        foreach( $filter as $f ) {
+            $value = $this->filter->apply( $value, $f );
+        }
+        return $value;
     }
 }
