@@ -68,7 +68,7 @@ class Datum
     }
 
     /**
-     * @param string|mix $key
+     * @param string $key
      * @return null
      */
     public function popError( $key )
