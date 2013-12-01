@@ -347,39 +347,6 @@ class Db_Rdb
         return array();
     }
     /* -------------------------------------------------------------- */
-    function cmdTuples() 
-	{
-        switch( $this->db_type ) 
-        {
-            case FORMSQL_USE_PDO:
-				if( is_numeric( $this->sqlh ) ) {
-					return $this->sqlh;
-				}
-				else {
-					return FALSE;
-				}
-			
-            case FORMSQL_USE_SQLITE:
-				if( is_numeric( $this->sqlh ) ) {
-					return $this->sqlh;
-				}
-				else {
-					return FALSE;
-				}
-			
-            case FORMSQL_USE_POSTGRESQL8x:
-                /** @noinspection PhpVoidFunctionResultUsedInspection */
-            return pg_cmdtuples( $this->sqlh );
-            
-            case FORMSQL_USE_MYSQL:
-            case FORMSQL_USE_MYSQL5_EUC:
-                // PHP manual: may not work. 
-                return @mysql_affected_rows( $this->sqlh );
-			
-        }
-        return FALSE;
-    }
-    /* -------------------------------------------------------------- */
     function close() 
 	{
 		if( !$this->conn ) return TRUE;

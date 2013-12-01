@@ -578,16 +578,6 @@ class Db_Sql
         return $num;
     }
     /* -------------------------------------------------------------- */
-    function fetchAffected()
-    {
-        if( WORDY > 1 ) echo "<br><i>formSQL::fetchAffected()...</i><br>\n";
-        
-        $num = $this->rdb->cmdTuples(); 
-        if( WORDY > 1 ) echo "num=$num <br>\n";
-        
-        return $num;
-    }
-    /* -------------------------------------------------------------- */
     function fetchAll( &$td )
     {
         if( WORDY > 1 ) echo "<br><i>formSQL::fetchAll( \$data )...</i><br>\n";
