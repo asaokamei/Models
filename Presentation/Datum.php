@@ -17,6 +17,9 @@ class Datum
      */
     var $selector;
 
+    // +----------------------------------------------------------------------+
+    //  construction and initialization
+    // +----------------------------------------------------------------------+
     /**
      * @param FormBase $selector
      */
@@ -36,6 +39,23 @@ class Datum
     }
 
     /**
+     * @param mixed $type
+     */
+    public function setType( $type ) {
+        $this->type = ucwords( $type );
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getType() {
+        return $this->type;
+    }
+
+    // +----------------------------------------------------------------------+
+    //  get information from Datum object. 
+    // +----------------------------------------------------------------------+
+    /**
      * @param string $key
      * @return null|string
      */
@@ -47,6 +67,21 @@ class Datum
         return null;
     }
 
+    /**
+     * @param string|mix $key
+     * @return null
+     */
+    public function popError( $key )
+    {
+        if( isset( $this->error[ $key ] ) ) {
+            return $this->error[ $key ];
+        }
+        return null;
+    }
+
+    // +----------------------------------------------------------------------+
+    //  pop HTML view output. 
+    // +----------------------------------------------------------------------+
     /**
      * @param string $key
      * @return mixed
@@ -98,32 +133,6 @@ class Datum
         }
         $form .= $this->popError( $key );
         return $form;
-    }
-
-    /**
-     * @param string|mix $key
-     * @return null
-     */
-    public function popError( $key )
-    {
-        if( isset( $this->error[ $key ] ) ) {
-            return $this->error[ $key ];
-        }
-        return null;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getType() {
-        return $this->type;
-    }
-
-    /**
-     * @param mixed $type
-     */
-    public function setType( $type ) {
-        $this->type = ucwords( $type );
     }
 
     /**
