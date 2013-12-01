@@ -36,7 +36,7 @@ function pn_disp_all( &$pn, $url=NULL )
 }
 
 /* ============================================================================ */
-function pn_disp_pages( &$pn, $url, $word=NULL )
+function pn_disp_pages( &$pn, $url )
 {   
     if( !empty( $pn['page'] ) ) {
         foreach( $pn['page'] as $key=>$arg ) {
@@ -233,7 +233,6 @@ class DB_PrevNext
     function getPrevNext1()
     {
         if( WORDY ) echo "<b>getPrevNext1()</b>...<br>\n";
-        $pn_info = array();
         
         // make PAGE numbers
         for( $i = 1; $i <= $this->max_page; $i++ ) {

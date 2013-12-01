@@ -118,6 +118,8 @@ class Db_Sql
         $this->offset   = NULL;
         $this->style    = NULL;
         $this->sql      = NULL;
+        $this->distinct = false;
+        $this->forUpdate= false;
     }
     /* -------------------------------------------------------------- */
     function setCols( $cols=NULL ) {
@@ -434,6 +436,7 @@ class Db_Sql
 		}
         if( WORDY > 5 ) echo " -- SQL: $sql<br>\n";
         
+        $time1 = $time2 = 0;
         if( FORMSQL_ALL_LOG ) $time1 = $this->getmicrotime();
         $sqlh = $this->rdb->exec( $sql );
         if( FORMSQL_ALL_LOG ) $time2 = $this->getmicrotime();
@@ -454,15 +457,6 @@ class Db_Sql
             }
             $item[] = sprintf( "%f", $time2 - $time1 );
             $item[] = $sql;
-            if( $this->style == "SELECT" ) {
-                $num_effected = $this->rdb->numRows( $sqlh );
-            }
-            elseif( $this->style == "UPDATE" || $this->style == "INSERT" || $this->style == "DELETE" ){
-                $num_effected = $this->rdb->cmdtuples( $sqlh );
-            }
-            else $num_effected = "?{$this->style}?";
-            $item[] = "Rows({$num_effected})";
-            
             $log    = implode( "|", $item ) . "\n";
             $filename = $this->getLogFile();
             if( $fd = fopen( $filename, "a" ) ) 
@@ -554,8 +548,10 @@ class Db_Sql
         switch( $this->rdb->getDbType() ) 
         {
             case FORMSQL_USE_POSTGRESQL8x:
-                $this->execSQL( "SELECT nextval( '{$next_name}' );" );
-                return $this->rdb->result(0,0);
+                $this->execSQL( "SELECT nextval( '{$next_name}' ) AS next_val;" );
+                $next_val = $this->rdb->fetchAssoc(0);
+                $next_val = $next_val[ 'next_val' ];
+                return $next_val;
             
             case FORMSQL_USE_MYSQL:
             case FORMSQL_USE_MYSQL5_EUC:
@@ -604,29 +600,6 @@ class Db_Sql
 		else {
 			return $this->rdb->fetchAssoc( $row );
 		}
-    }
-    /* -------------------------------------------------------------- */
-    function getCount( $option=NULL )
-    {
-        if( WORDY > 1 ) echo "<br><i>formSQL::fetchCount()...</i><br>\n";
-		
-		if( !$this->table ) return 0;
-		if( $option == 'DISTINCT' ) {
-			$distinct = 'DISTINCT';
-		}
-		
-        $sql = "SELECT COUNT(*) AS ccc FROM {$this->table}";
-        if( have_value( $this->where    ) ) $sql .= " WHERE {$this->where}";
-        if( have_value( $this->group    ) ) $sql .= " GROUP BY {$this->group}";
-        if( have_value( $this->having   ) ) $sql .= " HAVING {$this->having}";
-        //if( have_value( $this->order_by ) ) $sql .= " ORDER BY {$this->order_by}";
-        if( have_value( $this->misc     ) ) $sql .= " {$this->misc}";
-		
-		$this->execSQL( $sql );
-		$count = $this->fetchRow( 0 );
-		$count = $count[ 'ccc' ];
-		
-		return $count;
     }
     /* -------------------------------------------------------------- */
     function fetchCount( $option=NULL )

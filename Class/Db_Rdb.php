@@ -234,45 +234,9 @@ class Db_Rdb
         return FALSE;
     }
     /* -------------------------------------------------------------- */
-    function result( $row, $col ) 
-	{
-        switch( $this->db_type ) 
-        {
-            case FORMSQL_USE_PDO:
-                if( is_object( $this->sqlh ) ) { 
-					$rowdata = $this->sqlh->fetch( PDO::FETCH_ASSOC, PDO::FETCH_ORI_ABS, $row ); 
-      	        	return $rowdata[ $col ];
-				}
-				else { 
-					return FALSE; 
-				}
-				
-            case FORMSQL_USE_SQLITE:
-                if( is_resource( $this->sqlh ) ) { 
-					sqlite_seek( $this->sqlh, $row );
-					$data = sqlite_current( $this->sqlh, SQLITE_NUM ); 
-					return $data[ $col ];
-				}
-                return FALSE;
-
-            case FORMSQL_USE_POSTGRESQL8x:
-				if( function_exists( 'pg_fetch_result' ) ) {
-	                return @pg_fetch_result( $this->sqlh, $row, $col );
-				}
-                pg_Result( $this->sqlh, $row, $col );
-                break;
-            
-            case FORMSQL_USE_MYSQL:
-            case FORMSQL_USE_MYSQL5_EUC:
-                $result = @mysql_result( $this->sqlh, $row, $col );
-				if( WORDY > 5 ) echo "rdb::result( $row, $col ) => '{$result}'<br>";
-				return $result;
-            
-			default:
-        }
-        return FALSE;
-    }
-    /* -------------------------------------------------------------- */
+    /**
+     * @return bool|int
+     */
     function numRows() 
 	{
         switch( $this->db_type ) 
@@ -458,9 +422,10 @@ class Db_Rdb
 			
             case FORMSQL_USE_POSTGRESQL8x:
 				
-				$sql = "SELECT LASTVAL();";
+				$sql = "SELECT LASTVAL() AS last_id;";
 				$this->exec( $sql );
-				$last_id = $this->result( 0, 0 );
+				$last_id = $this->fetchAssoc( 0 );
+                $last_id = $last_id[ 'last_id' ];
 				break;
 			
             case FORMSQL_USE_MYSQL:
