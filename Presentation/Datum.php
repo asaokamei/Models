@@ -1,5 +1,7 @@
 <?php
 
+require_once( dirname( __FILE__ ) . '/Filters.php' );
+
 class Datum
 {
     const HTML  = 'Html';  // show as html-safe value.
