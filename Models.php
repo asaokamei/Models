@@ -211,7 +211,6 @@ abstract class Models
     {
         $this->updateBefore();
         $input = $this->datum->data;
-        $input = sql_safe( $input );
         $this->dao->update( $this->id, $input );
     }
 
@@ -224,7 +223,6 @@ abstract class Models
     {
         $this->insertBefore();
         $input = $this->datum->data;
-        $input = sql_safe( $input );
         return $this->dao->insertId( $input );
     }
 

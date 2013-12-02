@@ -132,6 +132,7 @@ abstract class DaoBase
         if( !$key ) {
             $key = $this->id_name;
         }
+        $data = sql_safe( $data );
         if( $this->updatedAt ) $data[ $this->updatedAt ] = date( 'Y-m-d H:i:s' );
         $this->dba->clear();
         $this->dba->setTable( $this->originalTable );
@@ -160,6 +161,7 @@ abstract class DaoBase
      */
     public function insert( $data )
     {
+        $data = sql_safe( $data );
         if( $this->createdAt ) $data[ $this->createdAt ] = date( 'Y-m-d H:i:s' );
         if( $this->updatedAt ) $data[ $this->updatedAt ] = date( 'Y-m-d H:i:s' );
         $this->dba->clear();
