@@ -21,4 +21,6 @@ interface DbaInterface
     public function setVals( $data );
     
     public function lastId( $table=null );
+
+    public function quote( $data );
 }
