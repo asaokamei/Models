@@ -1,6 +1,6 @@
 <?php
 
-abstract class EnumArray
+abstract class EnumArray implements EnumArrayInterface
 {
     /**
      * @var array
