@@ -216,14 +216,16 @@ abstract class Models
     }
 
     /**
-     * insert $input data into database. 
+     * insert $input data into database.
+     *
+     * @return string
      */
     public function insert()
     {
         $this->insertBefore();
         $input = $this->datum->data;
         $input = sql_safe( $input );
-        $this->dao->insertId( $input );
+        return $this->dao->insertId( $input );
     }
 
     /**
