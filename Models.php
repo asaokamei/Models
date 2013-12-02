@@ -196,8 +196,7 @@ abstract class Models
         if( $id ) {
             $this->id = $id;
         }
-        $where = $this->getIdName() . "='{$this->id}'";
-        $data = $this->dao->dba->setWhere( $where );
+        $data = $this->dao->findById( $this->id );
         if( !$data ) {
             throw new RuntimeException( "cannot find data for id=" . $this->id );
         }
