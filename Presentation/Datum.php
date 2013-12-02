@@ -94,7 +94,7 @@ class Datum
         if( $sel = $this->selector->getSelInstance( $key ) ) {
             $value = array_key_exists( $key, $this->data ) ? $this->data[$key] : "";
             $value = $this->h( $value );
-            $form = $sel->popHtml( 'EDIT', $value, $this->error );
+            $form = $sel->popHtml( 'EDIT', $value );
         }
         $form .= $this->popError( $key );
         return $form;
