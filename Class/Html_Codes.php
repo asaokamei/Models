@@ -1,6 +1,32 @@
 <?php
 require_once( dirname( __FILE__ ) . '/Html_Forms.php' );
 
+if( !function_exists( 'normalize_date' ) ) {
+    function normalize_date( $date ) 
+    {
+        $d_part = '';
+        if( preg_match( '/([0-9]{4})[-.\/]([0-9]{1,2})[-.\/]([0-9]{1,2})(.*)/', $date, $regs ) ) {
+            list( $year, $month, $day ) = array( $regs[1], $regs[2], $regs[3] );
+            $d_part = sprintf( "%4d-%02d-%02d", $year, $month, $day );
+        }
+        elseif( preg_match( '/([0-9]{4})年([0-9]{1,2})月([0-9]{1,2})日(.*)/', $date, $regs ) ) {
+            $e_part = NULL;
+            list( $year, $month, $day ) = array( $regs[1], $regs[2], $regs[3] );
+            $d_part = sprintf( "%4d-%02d-%02d", $year, $month, $day );
+        }
+        elseif( preg_match( '/^([0-9]{4})([012][0-9])([012][0-9])(.*)$/', $date, $regs ) ) {
+            list( $year, $month, $day ) = array( $regs[1], $regs[2], $regs[3] );
+            $d_part = sprintf( "%4d-%02d-%02d", $year, $month, $day );
+        }
+        elseif( ( $uTime = strtotime( $date ) ) !== FALSE ) {
+            $d_part = date( 'Y-m-d', $uTime );
+        }
+        return $d_part;
+
+    }
+}
+
+
 // +----------------------------------------------------------------------+
 class selDateJs extends Html_Select
 {
@@ -20,17 +46,11 @@ class selDateJs extends Html_Select
     }
 
     /* -------------------------------------------------------- */
-    function makeName( $value )
-    {
-        return fmt::slash_date( $value );
-    }
-
-    /* -------------------------------------------------------- */
     function splitValue( $value )
     {
         // split value into each forms.
         // overload this method if necessary. 
-        $date = fmt::std_date( $value, $value );
+        $date = normalize_date( $value );
         return explode( '-', $date );
     }
     /* -------------------------------------------------------- */
@@ -50,12 +70,6 @@ class selDateTime extends Html_Select
         $this->default_items = date( 'Y-m-d H:i:s' );
         $this->err_msg_empty = "";
         $this->setIME( 'OFF' );
-    }
-
-    /* -------------------------------------------------------- */
-    function makeName( $value )
-    {
-        return fmt::slash_date( $value );
     }
     /* -------------------------------------------------------- */
 }
@@ -79,17 +93,11 @@ class selDateDs extends Html_Divs
     }
 
     /* -------------------------------------------------------- */
-    function makeName( $value )
-    {
-        return fmt::jpn_date( $value );
-    }
-
-    /* -------------------------------------------------------- */
     function splitValue( $value )
     {
         // split value into each forms.
         // overload this method if necessary. 
-        $date = fmt::std_date( $value, $value );
+        $date = normalize_date( $value );
         return explode( '-', $date );
     }
     /* -------------------------------------------------------- */
@@ -215,7 +223,7 @@ class selTimeHM extends Html_Divs
     {
         // split value into each forms.
         // overload this method if necessary. 
-        list( $h, $m, $s ) = explode( $this->divider, $value );
+        list( $h, $m ) = explode( $this->divider, $value );
         return array( $h, $m );
     }
     /* -------------------------------------------------------- */
@@ -244,7 +252,7 @@ class selDate extends Html_Divs
     {
         // split value into each forms.
         // overload this method if necessary. 
-        $date = fmt::std_date( $value, $value );
+        $date = normalize_date( $value );
         return explode( '-', $date );
     }
     /* -------------------------------------------------------- */
@@ -474,7 +482,7 @@ class htmlHidden extends Html_Select
     /* -------------------------------------------------------- */
     function __construct( $name, $opt1 = null, $opt2 = null, $ime = 'ON', $option = null )
     {
-        if ( WORDY > 3 ) echo "htmlHidden( $name, $size, $max, $ime, $option )";
+        if ( WORDY > 3 ) echo "htmlHidden( $name, $opt1, $opt2, $ime, $option )";
         $this->name  = $name;
         $this->style = 'HIDDEN';
         $this->setOption( $option );
@@ -633,7 +641,7 @@ class selPrefByRegion extends Html_Select
     }
 
     // +----------------------------------------------------------------------+
-    function get_region()
+    static function get_region()
     {
         return array(
             array( 'HK', '北海道' ),
@@ -673,7 +681,6 @@ class selPrefByRegion extends Html_Select
             foreach ( $pref_arr as $pref_info ) {
                 $pref[ ] = $pref_info[ 0 ];
             }
-        if ( WORDY > 3 ) wt( $pref, 'pref from region: ' . $region );
         return $pref;
     }
 
@@ -695,7 +702,6 @@ class selPrefByRegion extends Html_Select
             }
 
         }
-        if ( WORDY > 3 ) wt( $pref, 'pref list from region: ' . $region );
         return $pref;
     }
 

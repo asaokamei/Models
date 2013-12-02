@@ -4,9 +4,14 @@ class Html_Divs
 {
     var $divider;
     var $num_div;
+    
+    /**
+     * @var Html_Select[]
+     */
     var $d_forms = array();
     var $default_items   = FALSE;
     var $implode_with_div = TRUE;
+    var $name;
     /* -------------------------------------------------------- */
     function __construct( $name, $opt1=NULL, $opt2=NULL, $ime='ON', $option=NULL )
     {

@@ -1,12 +1,12 @@
 <?php
 
-class html_forms
+class Html_Forms
 {
     static $this_wordy = 3;
     static $default = array(); // cleared only manually
     static $var_footer = ''; // add to var_name (i.e. var[1])
     var $options = array(); // automatically cleared 
-    var $disable_list = array(); // show item as disabled
+    var $disabled_list = array(); // show item as disabled
     var $item_chop = 0; // chops radio/checks items
     /* -------------------------------------------------------- */
     // static methods.
@@ -95,7 +95,7 @@ class html_forms
         $size = 1, // size (height) of select box.
         $selected = false, // list of values of selected options.
         $head = false, // add head option with no value.
-        $mult = false, // anable multiple selection
+        $multiple = false, // anable multiple selection
         $option = null, // optional property (i.e. class, etc.)
         $disabled = false // list of values of disabled options.
     )
@@ -114,11 +114,11 @@ class html_forms
         if ( !$size ) $size = 1;
         $id_name  = self::getIdName( $var_name );
         $var_name = self::getVarName( $var_name );
-        if ( $mult ) {
+        if ( $multiple ) {
             $var_name .= "[]";
         }
         $html = "<select name=\"{$var_name}\" size=\"{$size}\" id=\"{$id_name}\"";
-        if ( $mult ) {
+        if ( $multiple ) {
             $html .= " multiple";
         }
         $html .= $option;
@@ -170,7 +170,9 @@ class html_forms
         $var_name = self::getVarName( $var_name );
         $html     = '';
         if ( empty( $items ) ) return '';
-        foreach ( $items as $item_data ) {
+        $i = 0;
+        foreach ( $items as $item_data ) 
+        {
             $val  = $item_data[ 0 ];
             $name = $item_data[ 1 ];
             if ( $chop > 0 ) {
@@ -186,6 +188,7 @@ class html_forms
                 $html .= " disabled=\"disabled\"";
             }
             $html .= " />{$name}</LABEL>{$sep}";
+            $i++;
         }
         return $html;
     }
@@ -276,13 +279,13 @@ class html_forms
     /* -------------------------------------------------------- */
     function addClass( $class )
     {
-        return self::setArray( $this->options, 'class', $class );
+        self::setArray( $this->options, 'class', $class );
     }
 
     /* -------------------------------------------------------- */
     function addStyle( $style )
     {
-        return self::setArray( $this->options, 'style', $style );
+        self::setArray( $this->options, 'style', $style );
     }
 
     /* -------------------------------------------------------- */
@@ -408,6 +411,14 @@ class html_forms
     // get HTML's form elements
     // obviously, these methods are not so necessary...
     /* -------------------------------------------------------- */
+    /**
+     * to-be overwritten in Html_Select. 
+     * @return bool
+     */
+    function isMultiple() {
+        return false;
+    }
+    
     function getHidden( $var_name, $text = null )
     {
         $option = $this->getOption();
@@ -448,7 +459,7 @@ class html_forms
     function getSelect( $var_name, $items, $size = 1, $selected = false, $head = false, $mult = false )
     {
         $option   = $this->getOption();
-        $disabled = $this->disable_list;
+        $disabled = $this->disabled_list;
         return self::htmlSelect( $var_name, $items, $size, $selected, $head, $mult, $option, $disabled );
     }
 
@@ -456,7 +467,7 @@ class html_forms
     function getRadio( $var_name, $items, $checked = false, $sep = ' ', $head = false )
     {
         $option   = $this->getOption();
-        $disabled = $this->disable_list;
+        $disabled = $this->disabled_list;
         $chop     = $this->item_chop;
         if ( have_value( $head ) ) {
             $items = array_merge( array( array( '', $head ) ), $items );
@@ -472,7 +483,7 @@ class html_forms
         $name = $items[ 0 ][ 1 ];
 
         $id = "{$var_name}_{$val}";
-        $html .= "<input type='checkbox' name='{$var_name}' value='{$val}' id='{$id}'";
+        $html  = "<input type='checkbox' name='{$var_name}' value='{$val}' id='{$id}'";
         $html .= $this->getOption();
         if ( self::checkSelected( $val, $checked ) ) {
             $html .= " checked";
@@ -527,8 +538,7 @@ class html_forms
         //          : used as ??? if $type==EDIT
         $html     = '';
         $option   = $this->getOption();
-        $disabled = $this->disable_list;
-        $chop     = $this->item_chop;
+        $disabled = $this->disabled_list;
         for ( $i = 0; isset( $items[ $i ][ 0 ] ); $i++ ) {
             $idx  = $i + 1;
             $val  = $items[ $i ][ 0 ];

@@ -1,6 +1,6 @@
 <?php
 
-class Html_Select extends html_forms
+class Html_Select extends Html_Forms
 {
     var $name;
     var $style;
@@ -10,13 +10,17 @@ class Html_Select extends html_forms
     var $default_items = false;
     static $item_list = array();
 
-    var $ime, $size, $max, $width, $height; // for TEXT & TEXTAREA
+    var $ime, 
+        $size, 
+        $max, 
+        $width, 
+        $height; // for TEXT & TEXTAREA
     var $item_sep = null; // separator for radio/checks items
     var $class; // other options
     var $attach_list; // clickable select text for TEXT/TEXTAREA
 
-    var $db_table, $db_key, $db_name, $db_where;
-    var $disable_list = false;
+    var $db_table, $db_key, $db_name, $db_where, $db_order;
+    var $disabled_list = false;
 
     var $html_append_func = array();
     var $pickup_text, $pick_item_sep, $pick_copy_sep; // for pickup_text
@@ -51,7 +55,7 @@ class Html_Select extends html_forms
     function dbRead()
     {
         if ( $this->db_table && $this->db_key && $this->db_name ) {
-            $sql = new form_sql();
+            $sql = new Db_Sql( new Db_Rdb() );
             $sql->setTable( $this->db_table );
             $sql->setCols( array( $this->db_key, $this->db_name ) );
             if ( $this->db_where ) $sql->setWhere( $this->db_where );
@@ -222,7 +226,6 @@ class Html_Select extends html_forms
                 $this->item_sep = "、";
             }
         }
-        if ( WORDY > 3 ) wt( $value, "htmlSelect::makeName( $value )<br>\n" );
         $count_items = 0;
         $name        = '';
         for ( $i = 0; $i < count( $this->item_data ); $i++ ) {
@@ -253,7 +256,6 @@ class Html_Select extends html_forms
     function makeHtml( $value )
     {
         $style = strtoupper( trim( $this->style ) );
-        $html  = '';
         switch ( $style ) {
             case 'SERIAL':
             case 'HIDDEN':
@@ -302,7 +304,7 @@ class Html_Select extends html_forms
                 break;
 
             case 'PASSWORD':
-                $html = html_forms::htmlPasswd( $this->name, $this->size, $this->max, $value );
+                $html = Html_Forms::htmlPasswd( $this->name, $this->size, $this->max, $value );
                 break;
 
             default:
@@ -330,7 +332,6 @@ class Html_Select extends html_forms
             $this->pickup_text = explode( ',', $this->pickup_text );
         }
         $var_name = self::getIdName( $this->name );
-        if ( WORDY > 3 ) wt( $this->pickup_text, "make_attach() for $id_name" );
         if ( !have_value( $this->pick_item_sep ) ) $this->pick_item_sep = ",&nbsp;";
         if ( !isset( $this->pick_copy_sep ) ) $this->pick_copy_sep = " ";
 
