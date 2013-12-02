@@ -5,6 +5,8 @@ require_once( dirname( __FILE__ ) . '/Presentation/FormBase.php' );
 require_once( dirname( __FILE__ ) . '/Presentation/Datum.php' );
 require_once( dirname( __FILE__ ) . '/Validation/CheckBase.php' );
 require_once( dirname( __FILE__ ) . '/Validation/ValidateInterface.php' );
+require_once( dirname( __FILE__ ) . '/Value/EnumCode.php' );
+require_once( dirname( __FILE__ ) . '/Value/EnumArray.php' );
 
 abstract class Models
 {
@@ -41,27 +43,27 @@ abstract class Models
      */
     public function __construct() 
     {
-        $args = func_get_args();
-        call_user_func_array( array( $this, 'construct' ), $args );
     }
 
     /**
-     * set objects based on its class. 
+     * @param DaoBase $dao
      */
-    public function construct()
-    {
-        $args = func_get_args();
-        foreach( $args as $object ) {
-            if( is_object( $object ) ) {
-                $class = get_class( $object );
-                switch( $class ) {
-                    case 'DaoBase':    $this->dao   = $object;    break;
-                    case 'FormBase':   $this->form  = $object;    break;
-                    case 'CheckBase':  $this->check = $object;    break;
-                    case 'Datum':      $this->datum = $object;    break;
-                }
-            }
-        }
+    public function setDao( $dao ) {
+        $this->dao = $dao;
+    }
+
+    /**
+     * @param FormBase $form
+     */
+    public function setForm( $form ) {
+        $this->form = $form;
+    }
+
+    /**
+     * @param CheckBase $check
+     */
+    public function setCheck( $check ) {
+        $this->check = $check;
     }
 
     // +----------------------------------------------------------------------+
