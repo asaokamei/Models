@@ -41,15 +41,20 @@ abstract class Models
     /**
      * constructor. 
      */
-    public function __construct() 
-    {
-    }
+    public function __construct() {}
 
     /**
      * @param DaoBase $dao
      */
     public function setDao( $dao ) {
         $this->dao = $dao;
+    }
+
+    /**
+     * @return DaoBase
+     */
+    public function getDao() {
+        return $this->dao;
     }
 
     /**
@@ -60,10 +65,42 @@ abstract class Models
     }
 
     /**
+     * @return \FormBase
+     */
+    public function getForm() {
+        return $this->form;
+    }
+
+    /**
      * @param CheckBase $check
      */
     public function setCheck( $check ) {
         $this->check = $check;
+    }
+
+    /**
+     * @return \CheckBase
+     */
+    public function getCheck() {
+        return $this->check;
+    }
+
+    /**
+     * @param \Datum $datum
+     */
+    public function setDatum( $datum ) {
+        $this->datum = $datum;
+    }
+
+    /**
+     * @return Datum
+     */
+    public function getDatum()
+    {
+        if( !$this->datum ) {
+            $this->datum = new Datum( $this->form );
+        }
+        return $this->datum;
     }
 
     // +----------------------------------------------------------------------+
@@ -114,6 +151,14 @@ abstract class Models
     }
 
     /**
+     * @param null $key
+     * @return string
+     */
+    public function savePost( $key=null ) {
+        return $this->check->pgg->savePost( $key );
+    }
+
+    /**
      * @param array|null $data
      * @throws ValidationFailException
      */
@@ -135,27 +180,9 @@ abstract class Models
         }
     }
 
-    /**
-     * @return Datum
-     */
-    public function getDatum() 
-    {
-        if( !$this->datum ) {
-            $this->datum = new Datum( $this->form );
-        }
-        return $this->datum;
-    }
-
     // +----------------------------------------------------------------------+
     //  database access. 
     // +----------------------------------------------------------------------+
-    /**
-     * @return DaoBase
-     */
-    public function getDao() {
-        return $this->dao;
-    }
-    
     /**
      * finds data for id from database.
      *
