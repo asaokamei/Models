@@ -651,6 +651,21 @@ class Db_Sql
 		
 		return $numrows;
     }
+
+    /**
+     * @param string|string[] $text
+     * @return array|string
+     */
+    function quote( $text )
+    {
+        if( is_array( $text ) ) {
+            foreach( $text as $key => $str ) {
+                $text[ $key ] = $this->quote( $str );
+            }
+            return $text;
+        }
+        return $this->rdb->quote( $text );
+    }
     /* -------------------------------------------------------------- */
 }
 

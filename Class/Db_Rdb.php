@@ -435,6 +435,39 @@ class Db_Rdb
         }
         return $last_id;
     }
+
+    /**
+     * @param string $text
+     * @return string
+     */
+    function quote( $text )
+    {
+        switch( $this->db_type )
+        {
+            case FORMSQL_USE_PDO:
+                /** @var Pdo $conn */
+                $text = $this->conn->quote( $text );
+                break;
+
+            case FORMSQL_USE_SQLITE:
+                $text = sqlite_escape_string( $text );
+                break;
+
+            case FORMSQL_USE_POSTGRESQL8x:
+                $text = pg_escape_string( $text );
+                break;
+
+            case FORMSQL_USE_MYSQL:
+            case FORMSQL_USE_MYSQL5_EUC:
+                $text = mysql_real_escape_string( $text );
+                break;
+
+            default:
+                $text = sql_safe( $text );
+                break;
+        }
+        return $text;
+    }
     /* -------------------------------------------------------------- */
 }
 
