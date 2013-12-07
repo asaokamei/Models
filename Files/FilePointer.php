@@ -38,6 +38,8 @@ class FilePointer
     }
     
     /**
+     * open a file. 
+     * 
      * @param string $file
      * @param string $mode
      * @return $this
@@ -54,6 +56,8 @@ class FilePointer
     }
 
     /**
+     * open a file with lock. 
+     * 
      * @param string $file
      * @param string $mode
      * @return $this
@@ -72,16 +76,20 @@ class FilePointer
 
     /**
      * close file pointer. 
-     * unlocks the file if locked. 
+     * unlocks the file if locked.
+     * 
+     * @return $this
      */
     public function close()
     {
+        if( !$this->fp ) return $this;
         if( $this->lock ) {
             fflush( $this->fp );
             flock( $this->fp, LOCK_UN );
         }
         fclose( $this->fp );
         $this->fp = null;
+        return $this;
     }
     
     /**
