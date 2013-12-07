@@ -10,7 +10,12 @@ class FilePointer
     /**
      * @var resource
      */
-    public $fp;
+    public $fp = null;
+
+    /**
+     * @var bool
+     */
+    public $lock = false;
 
     /**
      * @param null   $file
@@ -21,6 +26,7 @@ class FilePointer
         if( $file ) {
             $this->open( $file, $mode );
         }
+        setlocale( LC_ALL, 'ja_JP.UTF-8' );
     }
 
     /**
@@ -48,6 +54,37 @@ class FilePointer
     }
 
     /**
+     * @param string $file
+     * @param string $mode
+     * @return $this
+     * @throws RuntimeException
+     */
+    public function openWithLock( $file, $mode='r+' )
+    {
+        $this->open( $file, $mode );
+        if( !flock( $this->fp, LOCK_EX ) ) {
+            throw new RuntimeException( 'cannot lock file: ' . $file );
+        }
+        rewind( $this->fp );
+        $this->lock = true;
+        return $this;
+    }
+
+    /**
+     * close file pointer. 
+     * unlocks the file if locked. 
+     */
+    public function close()
+    {
+        if( $this->lock ) {
+            fflush( $this->fp );
+            flock( $this->fp, LOCK_UN );
+        }
+        fclose( $this->fp );
+        $this->fp = null;
+    }
+    
+    /**
      * re-opens file contents as UTF-8. 
      * may use a lot of memory.
      * 
@@ -65,9 +102,36 @@ class FilePointer
         // convert to the new charset and store it in the memory. 
         $data = mb_convert_encoding( $data, $to, $from );
         $this->fp   = fopen( 'php://temp', 'r+' );
-        setlocale(LC_ALL, 'ja_JP.UTF-8');
         fwrite( $this->fp, $data );
         rewind( $this->fp );
         return $this;
+    }
+
+    /**
+     * re-opens as a temp file as UTF-8 contents. 
+     * may slower but use less memory compared to reOpenAsUtf8.
+     * 
+     * @param string $from
+     * @param string $to
+     * @return $this
+     */
+    public function tempAsUtf8( $from, $to='UTF-8' )
+    {
+        rewind( $this->fp );
+        $tempFp   = tmpfile();
+        while( $text = fgets( $this->fp ) ) {
+            fwrite( $tempFp, mb_convert_encoding( $tempFp, $to, $from ) );
+        }
+        fclose( $this->fp );
+        $tempFp->fp = $tempFp;
+        return $this;
+    }
+
+    /**
+     * 
+     */
+    public function __destruct()
+    {
+        $this->close();
     }
 }

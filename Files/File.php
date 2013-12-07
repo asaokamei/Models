@@ -24,7 +24,7 @@ class File
     }
 
     /**
-     * @param        $file
+     * @param string $file
      * @param string $mode
      * @return resource
      * @throws RuntimeException
@@ -35,5 +35,26 @@ class File
             throw new RuntimeException( "cannot find file: " . $file );
         }
         return fopen( $file, $mode );
+    }
+
+    /**
+     * @param string $file
+     * @param string $mode
+     * @throws RuntimeException
+     */
+    static function openWithLock( $file, $mode='rb+' )
+    {
+        $fp = self::open( $file, $mode );
+        if( !flock( $fp, LOCK_EX ) ) {
+            throw new RuntimeException( 'cannot lock file: ' . $file );
+        }
+        rewind( $fp );
+    }
+    
+    static function closeWithLock( $fp )
+    {
+        fflush( $fp );
+        flock( $fp, LOCK_UN );
+        fclose( $fp );
     }
 }
