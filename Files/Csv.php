@@ -35,6 +35,7 @@ class Csv
         $this->filePointer = $fp;
         setlocale( LC_ALL, 'ja_JP.UTF-8' );
     }
+    
     /**
      * gets CSV data from file.
      *
