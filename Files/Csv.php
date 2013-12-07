@@ -33,6 +33,7 @@ class Csv
     public function __construct( $fp )
     {
         $this->filePointer = $fp;
+        setlocale( LC_ALL, 'ja_JP.UTF-8' );
     }
     /**
      * gets CSV data from file.

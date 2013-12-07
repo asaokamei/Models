@@ -26,7 +26,6 @@ class FilePointer
         if( $file ) {
             $this->open( $file, $mode );
         }
-        setlocale( LC_ALL, 'ja_JP.UTF-8' );
     }
 
     /**
