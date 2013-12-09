@@ -33,7 +33,7 @@ class Dio
 
     public function decode( $input )
     {
-        $method = 'dencode' . ucwords( $this->encoder );
+        $method = 'decode' . ucwords( $this->encoder );
         return $this->$method( $input );
     }
 
