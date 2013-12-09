@@ -5,20 +5,20 @@
  * Date: 2013/12/02
  * Time: 13:02
  */
-interface EnumArrayInterface
+interface EnumInterface
 {
     /**
      * @return string[]
      */
-    public function toValues();
+    public function toValue();
 
     /**
      * resets the code to the original state.
      */
-    public function resetCodes();
+    public function resetCode();
 
     /**
      * @return string[]
      */
-    public function toLabels();
+    public function toLabel();
 }

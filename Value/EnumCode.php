@@ -1,6 +1,6 @@
 <?php
 
-abstract class EnumCode
+abstract class EnumCode implements EnumInterface
 {
     /**
      * @var string
@@ -33,7 +33,7 @@ abstract class EnumCode
     /**
      * resets the code to the original state.
      */
-    public function resetCodes()
+    public function resetCode()
     {
         $this->codes = $this->originalCodes;
     }

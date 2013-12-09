@@ -1,6 +1,6 @@
 <?php
 
-abstract class EnumArray implements EnumArrayInterface
+abstract class EnumList implements EnumInterface
 {
     /**
      * @var array
@@ -36,7 +36,7 @@ abstract class EnumArray implements EnumArrayInterface
     /**
      * resets the code to the original state.
      */
-    public function resetCodes()
+    public function resetCode()
     {
         $this->codes = $this->originalCodes;
     }
@@ -44,7 +44,7 @@ abstract class EnumArray implements EnumArrayInterface
     /**
      * @return string[]
      */
-    public function toValues()
+    public function toValue()
     {
         return $this->values;
     }
@@ -52,7 +52,7 @@ abstract class EnumArray implements EnumArrayInterface
     /**
      * @return string[]
      */
-    public function toLabels()
+    public function toLabel()
     {
         $labels = array();
         foreach( $this->values as $v ) {
