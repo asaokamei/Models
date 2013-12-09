@@ -123,16 +123,8 @@ class Datum
     public function popHtml( $key )
     {
         $value = $this->get( $key );
-        if( $this->selector->get( $key ) == 'text' ) {
-            $value = $this->h( $value );
-        }
-        elseif( $this->selector->get( $key ) == 'textarea' ) {
-            $value = nl2br( $this->h( $value ) );
-        }
-        elseif( $sel = $this->selector->getSelInstance( $key ) ) {
-            $value = array_key_exists( $key, $this->data ) ? $this->data[$key] : "";
-            $value = $this->h( $value );
-            $value = $sel->popHtml( 'NAME', $value );
+        if( $value instanceof EnumInterface ) {
+            $value = $value->toLabel();
         }
         else {
             $value = $this->h( $value );
