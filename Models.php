@@ -5,8 +5,8 @@ require_once( dirname( __FILE__ ) . '/Presentation/FormBase.php' );
 require_once( dirname( __FILE__ ) . '/Presentation/Datum.php' );
 require_once( dirname( __FILE__ ) . '/Validation/CheckBase.php' );
 require_once( dirname( __FILE__ ) . '/Validation/ValidateInterface.php' );
-require_once( dirname( __FILE__ ) . '/Value/EnumCode.php' );
 require_once( dirname( __FILE__ ) . '/Value/EnumInterface.php' );
+require_once( dirname( __FILE__ ) . '/Value/EnumCode.php' );
 require_once( dirname( __FILE__ ) . '/Value/EnumList.php' );
 
 abstract class Models
