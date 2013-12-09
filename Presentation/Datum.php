@@ -42,6 +42,14 @@ class Datum
     }
 
     /**
+     * @return Datum
+     */
+    public function factory()
+    {
+        return clone( $this );
+    }
+
+    /**
      * @param array $data
      * @param array $error
      */

@@ -36,6 +36,14 @@ abstract class Models
      */
     var $id;
 
+    /**
+     * last data and errors from check, create, findById, etc.
+     *
+     * @var array
+     */
+    var $lastData = array();
+    var $lastError = array();
+
     // +----------------------------------------------------------------------+
     //  construction of Models.
     // +----------------------------------------------------------------------+
@@ -101,7 +109,9 @@ abstract class Models
         if( !$this->datum ) {
             $this->datum = new Datum( $this->form );
         }
-        return $this->datum;
+        $datum = $this->datum->factory();
+        $datum->set( $this->lastData, $this->lastError );
+        return $datum;
     }
 
     // +----------------------------------------------------------------------+
@@ -145,40 +155,70 @@ abstract class Models
     }
 
     /**
-     * @param null $key
+     * @param $data
+     * @param array $error
      */
-    public function loadPost( $key=null ) {
-        $this->check->pgg->loadPost($key);
+    protected function merge( $data, $error=array() )
+    {
+        $this->lastData = array_merge( $this->lastData, $data );
+        if( $error ) {
+            $this->lastError = array_merge( $this->lastError, $error );
+        }
     }
 
     /**
-     * @param null $key
-     * @return string
+     * empties lastData and lastErrors.
      */
-    public function savePost( $key=null ) {
-        return $this->check->pgg->savePost( $key );
+    public function resetData() {
+        $this->lastData = $this->lastError = array();
     }
 
+    // +----------------------------------------------------------------------+
+    //  check inputs and data.
+    // +----------------------------------------------------------------------+
     /**
-     * @param array|null $data
+     * @param array $data
+     * @return array
      * @throws ValidationFailException
+     * @throws Exception
      */
-    public function check( $data=null ) 
+    public function create( $data )
     {
         try {
-            
-            if( $data ) {
-                $this->check->setSource( $data );
-            }
-            $this->getDatum();
-            $this->check->check();
-            $this->datum->set( $this->check->popData() );
-            
+
+            $dto = $this->check( $data );
+            $this->merge( $dto );
+            return $dto;
+
         } catch ( ValidationFailException $e ) {
-            
-            $this->datum->set( $this->check->popData(), $this->check->popErrors() );
+
+            $this->merge( $this->check->popData(), $this->check->popErrors() );
+            throw $e;
+
+        } catch ( Exception $e ) {
             throw $e;
         }
+    }
+
+    /**
+     * checks input data ($data) and returns validated data.
+     *
+     * @param $data
+     * @return array
+     */
+    public function check( $data=null )
+    {
+        if( $data ) {
+            $this->check->setSource( $data );
+        }
+        $this->check->check();
+        return $this->check->popData();
+    }
+
+    public function modify( $dto, $data )
+    {
+        $dto = array_merge( $dto, $data );
+        return $dto;
     }
 
     // +----------------------------------------------------------------------+
@@ -200,29 +240,30 @@ abstract class Models
         if( !$data ) {
             throw new RuntimeException( "cannot find data for id=" . $this->id );
         }
-        $this->datum->set( $data );
-        return $this->datum;
+        $this->merge( $data );
+        return $data;
     }
-    
+
     /**
-     * update database for $this->id with $input array. 
+     * update database for $this->id with $input array.
+     * @param $id
+     * @param $input
      */
-    public function update()
+    public function update( $id, $input )
     {
         $this->updateBefore();
-        $input = $this->datum->data;
-        $this->dao->update( $this->id, $input );
+        $this->dao->update( $id, $input );
     }
 
     /**
      * insert $input data into database.
      *
+     * @param $input
      * @return string
      */
-    public function insert()
+    public function insert( $input )
     {
         $this->insertBefore();
-        $input = $this->datum->data;
         return $this->dao->insertId( $input );
     }
 

@@ -135,7 +135,7 @@ abstract class DaoBase
         if( method_exists( $this->dba, 'quote' ) ) {
             $data = $this->dba->quote( $data );
         } else {
-            $data = sql_safe( $data );
+            $data = array_map( $data, 'addslashes' );
         }
         if( $this->updatedAt ) $data[ $this->updatedAt ] = date( 'Y-m-d H:i:s' );
         $this->dba->clear();
@@ -168,7 +168,7 @@ abstract class DaoBase
         if( method_exists( $this->dba, 'quote' ) ) {
             $data = $this->dba->quote( $data );
         } else {
-            $data = sql_safe( $data );
+            $data = array_map( $data, 'addslashes' );
         }
         if( $this->createdAt ) $data[ $this->createdAt ] = date( 'Y-m-d H:i:s' );
         if( $this->updatedAt ) $data[ $this->updatedAt ] = date( 'Y-m-d H:i:s' );
