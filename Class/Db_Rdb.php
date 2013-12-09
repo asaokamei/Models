@@ -8,8 +8,14 @@ class RdbConnException extends Exception {}
 
 class Db_Rdb
 {
-	var $db_type; // type of db; postgresql, mysql, sqlite, etc. 
+    const PGSQL  = 'pgsql';
+    const MYSQL  = 'mysql';
+    const PDO    = 'pdo';
+    const SQLITE = 'sqlite';
+
+    var $db_type; // type of db; postgresql, mysql, sqlite, etc. 
     var $db_name; // db name used for MySQL
+    var $db_conn; // connection string, such as "db=mysql host=localhost dbname=db user=admin password=ps"
     
     /**
      * @var Pdo|resource
@@ -22,8 +28,11 @@ class Db_Rdb
     var $sqlh;    // sql result resource
     
     /* -------------------------------------------------------------- */
-    function __construct() 
+    function __construct( $db_conn=null ) 
     {
+        if( $db_conn ) {
+            $this->connect( $db_conn );
+        }
         if( WORDY > 3 ) echo "<br><b>rdb::instance created...</b><br>\n";
     }
     /* -------------------------------------------------------------- */
@@ -31,7 +40,7 @@ class Db_Rdb
     {
 		$cons = $this->parseDbCon( $db_con );
 		if( isset( $cons[ 'db' ] ) ) {
-			$this->db_type = $cons[ 'db' ];
+			$this->db_type = strtolower( $cons[ 'db' ] );
 		}
 		else 
 		if( defined( 'FORMSQL_DB_TYPE' ) ) {
@@ -44,7 +53,7 @@ class Db_Rdb
 		$this->conn = FALSE;
 		switch( $this->db_type ) 
 		{
-		case FORMSQL_USE_PDO:
+		case self::PDO:
 			if( WORDY > 5 ) echo "PDO( {$cons['dsn']}, {$cons['user']}, {$cons['password']} );<br>";
 			try { 
 				$this->conn = @new PDO( $cons["dsn"], $cons["user"], $cons["password"] );
@@ -55,15 +64,17 @@ class Db_Rdb
 			}
 			break;
 		
-		case FORMSQL_USE_SQLITE:
+		case self::SQLITE:
 			if( WORDY > 3 ) echo "sqlite_open( {$cons['file']}, {$cons['mode']} );<br>";
 			$this->conn = @sqlite_open( $cons["file"], $cons["mode"] );
 			break;
 		
-		case FORMSQL_USE_POSTGRESQL8x:
+		case self::PGSQL:
+
 			if( !function_exists( 'pg_connect' ) ) {
 				throw new RdbConnException( 'pg_connect not exists' );
 			}
+            $db_con = $this->constructDbConForPgSql( $cons );
 			if( $new ) {
 				$this->conn = @pg_connect( $db_con, PGSQL_CONNECT_FORCE_NEW );
 			}
@@ -72,8 +83,7 @@ class Db_Rdb
 			}
 			break;
 		
-		case FORMSQL_USE_MYSQL:
-		case FORMSQL_USE_MYSQL5_EUC:
+		case self::MYSQL:
 		
 			if( !function_exists( 'mysql_connect' ) ) {
 				throw new RdbConnException( 'mysql_connect not exists' );
@@ -144,6 +154,18 @@ class Db_Rdb
         return $this->db_type;
     }
 
+    function constructDbConForPgSql( $input )
+    {
+        $db_con = '';
+        $cons = array( 'dbname', 'port', 'host', 'user', 'password' );
+        foreach( $cons as $key ) {
+            if( isset( $input[$key] ) ) {
+                $db_con .= " $key=".$input[$key];
+            }
+        }
+        return $db_con;
+    }
+
     /* -------------------------------------------------------------- */
     function query( $sql ) 
 	{
@@ -152,11 +174,11 @@ class Db_Rdb
         if( WORDY > 3 ) echo "rdb::query( <font color=blue>$sql</font> )...<br>\n ";
         switch( $this->db_type ) 
         {
-            case FORMSQL_USE_PDO:
+            case self::PDO:
                 $this->sqlh = @$this->conn->query( $sql );
             	break;
             
-            case FORMSQL_USE_SQLITE:
+            case self::SQLITE:
                 $this->sqlh = @sqlite_query( $this->conn, $sql );
             	break;
             
@@ -178,15 +200,15 @@ class Db_Rdb
 		$this->sqlh = FALSE;
         switch( $this->db_type ) 
         {
-            case FORMSQL_USE_PDO:
+            case self::PDO:
                 $this->sqlh = @$this->conn->exec( $sql );
             	break;
             
-            case FORMSQL_USE_SQLITE:
+            case self::SQLITE:
                 $this->sqlh = @sqlite_exec( $this->conn, $sql );
             	break;
             
-            case FORMSQL_USE_POSTGRESQL8x:
+            case self::PGSQL:
 				if( function_exists( 'pg_query' ) ) {
 	                $this->sqlh = @pg_query( $this->conn, $sql );
 				}
@@ -195,8 +217,7 @@ class Db_Rdb
 				}
             	break;
             
-            case FORMSQL_USE_MYSQL:
-            case FORMSQL_USE_MYSQL5_EUC:
+            case self::MYSQL:
                 if( WORDY > 5 ) echo $this->db_name . ".. ";
                 $this->sqlh = mysql_query( $sql, $this->conn );
             	break;
@@ -210,7 +231,7 @@ class Db_Rdb
 	{
         switch( $this->db_type ) 
         {
-            case FORMSQL_USE_PDO:
+            case self::PDO:
                 if( is_object( $this->sqlh ) ) { 
 					$err = $this->sqlh->errorInfo(); 
 				}
@@ -219,15 +240,14 @@ class Db_Rdb
 				}
 				return $err[2];
             
-            case FORMSQL_USE_SQLITE:
+            case self::SQLITE:
                 $error_code = @sqlite_last_error( $this->conn );
 				return sqlite_error_string( $error_code );
             
-            case FORMSQL_USE_POSTGRESQL8x:
+            case self::PGSQL:
                 return @pg_errormessage( $this->conn );
             
-            case FORMSQL_USE_MYSQL:
-            case FORMSQL_USE_MYSQL5_EUC:
+            case self::MYSQL:
                 return @mysql_error( $this->conn );
 			default:
         }
@@ -241,7 +261,7 @@ class Db_Rdb
 	{
         switch( $this->db_type ) 
         {
-            case FORMSQL_USE_PDO:
+            case self::PDO:
                 if( is_object( $this->sqlh ) ) { 
 					return $this->sqlh->rowCount(); 
 				}
@@ -249,7 +269,7 @@ class Db_Rdb
 					return 0; 
 				}
 			
-            case FORMSQL_USE_SQLITE:
+            case self::SQLITE:
                 if( is_resource( $this->sqlh ) ) { 
 					return sqlite_num_rows( $this->sqlh ); 
 				}
@@ -257,14 +277,13 @@ class Db_Rdb
 					return $this->sqlh; 
 				}
 			
-            case FORMSQL_USE_POSTGRESQL8x:
+            case self::PGSQL:
 				if( function_exists( 'pg_num_rows' ) ) {
 	                return @pg_num_rows( $this->sqlh );
 				}
                 return @pg_NumRows( $this->sqlh );
             
-            case FORMSQL_USE_MYSQL:
-            case FORMSQL_USE_MYSQL5_EUC:
+            case self::MYSQL:
                 return @mysql_num_rows( $this->sqlh );
 			default:
         }
@@ -275,7 +294,7 @@ class Db_Rdb
 	{
         switch( $this->db_type ) 
         {
-            case FORMSQL_USE_PDO:
+            case self::PDO:
                 if( is_object( $this->sqlh ) ) { 
 					return $this->sqlh->fetch( PDO::FETCH_ASSOC, PDO::FETCH_ORI_ABS, $row ); 
 				}
@@ -283,7 +302,7 @@ class Db_Rdb
 					return FALSE; 
 				}
 				
-            case FORMSQL_USE_SQLITE:
+            case self::SQLITE:
                 if( is_resource( $this->sqlh ) ) { 
 					sqlite_seek( $this->sqlh, $row );
 					return sqlite_current( $this->sqlh, SQLITE_ASSOC ); 
@@ -292,11 +311,10 @@ class Db_Rdb
 					return FALSE; 
 				}
 				
-            case FORMSQL_USE_POSTGRESQL8x:
+            case self::PGSQL:
 	            return  @pg_fetch_assoc( $this->sqlh, $row );
 				
-            case FORMSQL_USE_MYSQL:
-            case FORMSQL_USE_MYSQL5_EUC:
+            case self::MYSQL:
 				if( is_int( $row ) && $row >= 0 ) {
 					if( @mysql_data_seek( $this->sqlh, $row ) ) {
 						$result = @mysql_fetch_assoc( $this->sqlh );
@@ -316,15 +334,14 @@ class Db_Rdb
 		if( !$this->conn ) return TRUE;
         switch( $this->db_type ) 
         {
-            case FORMSQL_USE_POSTGRESQL8x:
+            case self::PGSQL:
 				if( pg_close( $this->conn ) ) {
 					$this->conn = NULL;
 	                return TRUE;
 				}
             	break;
             
-            case FORMSQL_USE_MYSQL:
-            case FORMSQL_USE_MYSQL5_EUC:
+            case self::MYSQL:
 				if( mysql_close( $this->conn ) ) {
 					$this->conn = NULL;
 	                return TRUE;
@@ -342,15 +359,14 @@ class Db_Rdb
 		if( !$this->sqlh ) return TRUE;
         switch( $this->db_type ) 
         {
-            case FORMSQL_USE_POSTGRESQL8x:
+            case self::PGSQL:
                 if( @pg_freeresult( $this->sqlh ) ) {
 					$this->sqlh = NULL;
 					return TRUE;
 				}
             	break;
             
-            case FORMSQL_USE_MYSQL:
-            case FORMSQL_USE_MYSQL5_EUC:
+            case self::MYSQL:
                 mysql_freeresult( $this->sqlh );
                 $this->sqlh = NULL;
             	break;
@@ -364,7 +380,7 @@ class Db_Rdb
 	{
         switch( $this->db_type ) 
         {
-            case FORMSQL_USE_PDO:
+            case self::PDO:
 				return $this->conn->beginTransaction();
 			default:
                 return @$this->exec( "BEGIN;" );
@@ -375,7 +391,7 @@ class Db_Rdb
 	{
         switch( $this->db_type ) 
         {
-            case FORMSQL_USE_PDO:
+            case self::PDO:
 				return $this->conn->commit();
 			
 			default:
@@ -387,7 +403,7 @@ class Db_Rdb
 	{
         switch( $this->db_type ) 
         {
-            case FORMSQL_USE_PDO:
+            case self::PDO:
 				return $this->conn->beginTransaction();
 			
 			default:
@@ -399,7 +415,7 @@ class Db_Rdb
 	{
         switch( $this->db_type ) 
         {
-            case FORMSQL_USE_POSTGRESQL8x:
+            case self::PGSQL:
                 return @$this->exec( "LOCK TABLE {$table} IN ACCESS EXCLUSIVE MODE;" );
             
 			default:
@@ -412,15 +428,15 @@ class Db_Rdb
         $last_id = FALSE;
         switch( $this->db_type ) 
         {
-            case FORMSQL_USE_PDO:
+            case self::PDO:
 				$last_id = @$this->conn->lastInsertId();
 				break;
 			
-            case FORMSQL_USE_SQLITE:
+            case self::SQLITE:
 				$last_id = @sqlite_last_insert_rowid( $this->conn );
 				break;
 			
-            case FORMSQL_USE_POSTGRESQL8x:
+            case self::PGSQL:
 				
 				$sql = "SELECT LASTVAL() AS last_id;";
 				$this->exec( $sql );
@@ -428,8 +444,7 @@ class Db_Rdb
                 $last_id = $last_id[ 'last_id' ];
 				break;
 			
-            case FORMSQL_USE_MYSQL:
-            case FORMSQL_USE_MYSQL5_EUC:
+            case self::MYSQL:
                 return @mysql_insert_id( $this->conn );
             
         }
@@ -444,21 +459,20 @@ class Db_Rdb
     {
         switch( $this->db_type )
         {
-            case FORMSQL_USE_PDO:
+            case self::PDO:
                 /** @var Pdo $conn */
                 $text = $this->conn->quote( $text );
                 break;
 
-            case FORMSQL_USE_SQLITE:
+            case self::SQLITE:
                 $text = sqlite_escape_string( $text );
                 break;
 
-            case FORMSQL_USE_POSTGRESQL8x:
+            case self::PGSQL:
                 $text = pg_escape_string( $text );
                 break;
 
-            case FORMSQL_USE_MYSQL:
-            case FORMSQL_USE_MYSQL5_EUC:
+            case self::MYSQL:
                 $text = mysql_real_escape_string( $text );
                 break;
 
