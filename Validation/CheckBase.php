@@ -5,7 +5,7 @@ class ValidationFailException extends RuntimeException {}
 abstract class CheckBase
 {
     /**
-     * @var ValidateInterface
+     * @var ValidateInterface|pgg_check
      */
     var $pgg;
 
@@ -28,7 +28,7 @@ abstract class CheckBase
      * @param array $data
      */
     public function setSource( $data ) {
-        $this->pgg->setSource( $data );
+        $this->pgg->post_vars = $data;
     }
 
     // +----------------------------------------------------------------------+
