@@ -62,6 +62,7 @@ abstract class DaoBase
         }
         $this->originalTable = $this->table;
 
+        $sql->table = $this->table;
         $this->dba = $sql;
     }
 
