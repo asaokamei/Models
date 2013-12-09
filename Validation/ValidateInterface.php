@@ -23,4 +23,6 @@ interface ValidateInterface
     public function savePost( $key );
     
     public function loadPost( $key );
+
+    public function err_getmsgs();
 }

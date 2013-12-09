@@ -52,7 +52,7 @@ abstract class CheckBase
      * @return mixed|array
      */
     public function popErrors() {
-        return $this->pgg->popErrors();
+        return $this->pgg->err_getmsgs();
     }
 
     /**

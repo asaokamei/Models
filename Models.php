@@ -204,6 +204,7 @@ abstract class Models
      * checks input data ($data) and returns validated data.
      *
      * @param $data
+     * @throws ValidationFailException
      * @return array
      */
     public function check( $data=null )
@@ -212,6 +213,9 @@ abstract class Models
             $this->check->setSource( $data );
         }
         $this->check->check();
+        if( !$this->check->isValid() ) {
+            throw new ValidationFailException();
+        }
         return $this->check->popData();
     }
 
