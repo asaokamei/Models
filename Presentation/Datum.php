@@ -138,11 +138,13 @@ class Datum
      */
     public function popForm( $key )
     {
-        $form = '';
         if( $sel = $this->selector->getSelInstance( $key ) ) {
             $value = array_key_exists( $key, $this->data ) ? $this->data[$key] : "";
             $value = $this->h( $value );
             $form = $sel->popHtml( 'EDIT', $value );
+        } else {
+            $form = $this->get( $key );
+            $form = $this->h( $form );
         }
         $form .= $this->popError( $key );
         return $form;
