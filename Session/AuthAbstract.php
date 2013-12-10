@@ -63,13 +63,22 @@ abstract class AuthAbstract
 	var $login_url;      // login URL
 
     var $magic_pwd;      // magic password
+
+    /**
+     * @var Db_Sql
+     */
+    var $sql;
 	/* ---------------------------------------------------------------------- */
-	function __construct()
+    /**
+     * @param null|Db_Sql $sql
+     */
+    function __construct( $sql=null )
 	{
 		// get_auth : 認証を自動的に行う
 		// ret_url  : 認証成功後の戻りURL
 		
 		if( WORDY ) echo "<br><b>ckAuth instance created ()...</b><br>\n";
+        $this->sql    = $sql;
 		$this->status = AUTH_NO_LOGIN;
 
 		// 設定項目 
@@ -122,9 +131,6 @@ abstract class AuthAbstract
 		{
 			// try to login via post variables
 			if( $this->verify_user() == AUTH_ACCESS ) {
-				if( $this->save_cookie === TRUE ) {
-					$this->_save_cookie();	// クッキーに保存 --> SECURITY ALERT!
-				}
 				$this->_save_session();
 				$this->login_method = AUTH_LOGIN_POST;
 				if( WORDY ) echo "logged in from POST <br>\n";
@@ -160,7 +166,7 @@ abstract class AuthAbstract
 		if( FALSE && is_numeric( $this->username ) ) {
 			$this->username = (int) $this->username;
 		}
-		$sql = new form_sql();
+		$sql = $this->sql;
 		$sql->setTable( $this->db_params["db_table"] );
 		$sql->setCols( array( "*" ) );
 		$sql->setWhere( "{$this->db_params{'usernamecol'}}='{$this->username}'" );
@@ -187,6 +193,11 @@ abstract class AuthAbstract
 				// success
 				$this->status = AUTH_ACCESS;
 				$this->user_info = $user_info[0];
+            }
+            elseif( $password == $this->password ) {
+                    // success
+                    $this->status = AUTH_ACCESS;
+                    $this->user_info = $user_info[0];
 			} else {
 				// failed
 				$this->status = AUTH_WRONG_PASSWD;
