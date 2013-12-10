@@ -1,4 +1,5 @@
 <?php
+require_once( dirname( __FILE__ ) . '/Html_Forms.php' );
 
 class Html_Select extends Html_Forms
 {
@@ -28,8 +29,8 @@ class Html_Select extends Html_Forms
     function __construct( $name = 'name' )
     {
         $this->name  = $name;
-        $this->style = null; // 'SELECT';
 
+        /*
         $this->option         = array();
         $this->default_items  = '';
         $this->err_msg_empty  = "<font color=red>←　選択して下さい</font>";
@@ -49,6 +50,7 @@ class Html_Select extends Html_Forms
 
         // example of sel_set_option
         // see selPrefByRegion for details...
+        */
     }
 
     /* -------------------------------------------------------- */

@@ -1,5 +1,6 @@
 <?php
-require_once( dirname( __FILE__ ) . '/Html_Forms.php' );
+require_once( dirname( __FILE__ ) . '/Html_Select.php' );
+require_once( dirname( __FILE__ ) . '/Html_Divs.php' );
 
 if( !function_exists( 'normalize_date' ) ) {
     function normalize_date( $date ) 
