@@ -333,7 +333,7 @@ class selNendo extends selYear
 class selMonth extends Html_Select
 {
     /* -------------------------------------------------------- */
-    function __construct( $name, $default = null, $start = 1, $ime = "OFF" )
+    function __construct( $name, $default = null, $start = null, $ime = "OFF" )
     {
         if ( !$name ) $name = 'month';
         $this->name  = $name;
@@ -341,6 +341,7 @@ class selMonth extends Html_Select
 
         $this->default_items   = date( 'm' );
         $this->add_head_option = "--";
+        if( !$start ) $start = 1;
         $end                   = $start + 11;
         for ( $mon = $start; $mon <= $end; $mon++ ) {
             $this->item_data[ ] = array(
