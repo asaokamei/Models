@@ -4,7 +4,28 @@ class Messages
 {
     var $error = false;
     var $message = '';
+    var $data = array();
 
+    /**
+     * @param $key
+     * @param $value
+     */
+    public function set( $key, $value )
+    {
+        $this->data[ $key ] = $value;
+    }
+
+    /**
+     * @param $key
+     * @return null
+     */
+    public function get( $key )
+    {
+        if( isset( $this->data[$key] ) ) {
+            return $this->data[$key];
+        }
+        return null;
+    }
     /**
      * @param string $message
      */
