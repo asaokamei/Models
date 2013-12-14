@@ -1,6 +1,38 @@
 <?php
 
-class Pgg_Check
+/**
+ * Class Pgg_Check
+ */
+class Pgg_Check extends Pgg_Value
+{
+    /**
+     */
+    function construct() {}
+
+    function isText( $key, $required=false, $pattern=null, $message=null ) {
+        return $this->is( $key, 'text', 'text', $required, $pattern, $message );
+    }
+    function isMail( $key, $required=false, $pattern=null, $message=null ) {
+        return $this->is( $key, 'lower', 'mail', $required, $pattern, $message );
+    }
+    function isKana( $key, $required=false, $pattern=null, $message=null ) {
+        return $this->is( $key, 'katakana', 'katakana', $required, $pattern, $message );
+    }
+    function isHanKana( $key, $required=false, $pattern=null, $message=null ) {
+        return $this->is( $key, 'hankana', 'hankana', $required, $pattern, $message );
+    }
+    function isAscii( $key, $required=false, $pattern=null, $message=null ) {
+        return $this->is( $key, 'ascii', 'ascii', $required, $pattern, $message );
+    }
+    function isDate( $key, $required=false, $pattern=null, $message=null ) {
+        return $this->is( $key, 'date', 'date', $required, $pattern, $message );
+    }
+}
+
+/**
+ * Class Pgg_Value
+ */
+class Pgg_Value
 {
     var $source = array();
     
@@ -9,6 +41,27 @@ class Pgg_Check
     var $errors = array();
     
     var $isValid = true;
+
+    /**
+     * @return array
+     */
+    function popData() {
+        return $this->checked;
+    }
+
+    /**
+     * @return array
+     */
+    function popError() {
+        return $this->errors;
+    }
+
+    /**
+     * @return bool
+     */
+    function isValid() {
+        return $this->isValid;
+    }
 
     /**
      * @param string $key
@@ -159,11 +212,12 @@ class Pgg_Error
     static public  $messages = array(
         0 => '入力内容を確認ください',
         'required'  => '入力必須です',
-        'mail'      => '',
-        'AsciiOnly' => '',
-        'KanaOnly'  => '',
-        'HiraOnly'  => '',
-        'pattern '  => '',
+        'mail'      => 'メールアドレスです',
+        'ascii'     => '半角英数字のみです',
+        'katakana'  => 'カタカナのみです。',
+        'Hiragana'  => 'ひらがなのみです',
+        'pattern '  => '文字を確認ください',
+        'date'      => '日付を入力ください',
     );
 
     /**
@@ -185,6 +239,17 @@ class Pgg_Error
 
 /**
  * Class Pgg_Filter
+ * 
+ * binary:   UTF-8チェックをパスしてそのまま。
+ *           以下、全てUTF-8エンコードチェックあり。
+ * text:     半角カタカナを全角に変換。
+ * ascii:    全角英数字を半角に変換。
+ * lower:    半角に変換して、小文字に。
+ * upper:    半角に変換して、大文字に。
+ * katakana: ひらがなをカタカナに変換。
+ * hiragana: カタカナをひらがなに変換。
+ * zenkaku:  半角文字全てを全角に。
+ * hankana:  カタカナ／ひらがなを半角カタカナに。
  */
 class Pgg_Filter
 {
@@ -196,7 +261,14 @@ class Pgg_Filter
     static function get( $value, $type )
     {
         $method = 'get' . ucwords( $type );
-        return self::$method( $value );
+        if( method_exists( 'Pgg_Filter', $method ) ) {
+            return self::$method( $value );
+        }
+        return self::getAscii( $value );
+    }
+    
+    function getBinary( $value ) {
+        return $value;
     }
     
     function getText( $value )
@@ -218,13 +290,13 @@ class Pgg_Filter
         return strtoupper( $value );
     }
 
-    function getKana( $value ) {
+    function getKatakana( $value ) {
         $value = self::getText( $value );
         $value = mb_convert_kana( $value, 'C' );
         return $value;
     }
     
-    function getHira( $value ) {
+    function getHiragana( $value ) {
         $value = self::getText( $value );
         $value = mb_convert_kana( $value, 'c' );
         return $value;
@@ -251,6 +323,16 @@ class Pgg_Filter
     }
 }
 
+/**
+ * Class Pgg_Validate
+ * 
+ * mail:
+ * code:
+ * ascii:
+ * katakana:
+ * hiragana:
+ * date:
+ */
 class Pgg_Validate
 {
     /**
@@ -271,6 +353,10 @@ class Pgg_Validate
         return (bool) preg_match( '/^([a-zA-Z0-9])+([a-zA-Z0-9\._-])*@([a-zA-Z0-9_-])+([a-zA-Z0-9\._-]+)+$/', $value );
     }
     
+    function isCode( $value ) {
+        return (bool) preg_match( '/[-_0-9a-zA-Z]+/', $value );
+    }
+
     function isKatakana( $value ) {
         return (bool) preg_match( "/^[ァ-ヶー]+$/u", $value );
     }
@@ -287,6 +373,7 @@ class Pgg_Validate
             return false;
         }
     }
+    
     /**
      * @param string $value
      * @param string $pattern
