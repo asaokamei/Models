@@ -1,4 +1,5 @@
 <?php
+require_once( dirname(__FILE__).'/DataArrayAbstract.php' );
 
 abstract class DtoAbstract extends DataArrayAbstract
 {

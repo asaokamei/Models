@@ -8,6 +8,7 @@ require_once( dirname( __FILE__ ) . '/Validation/ValidateInterface.php' );
 require_once( dirname( __FILE__ ) . '/Value/EnumInterface.php' );
 require_once( dirname( __FILE__ ) . '/Value/EnumCode.php' );
 require_once( dirname( __FILE__ ) . '/Value/EnumList.php' );
+require_once( dirname( __FILE__ ) . '/Value/DtoAbstract.php' );
 
 abstract class Models
 {
@@ -43,12 +44,12 @@ abstract class Models
      * constructor. 
      * yap, gave up on easy testing. 
      */
-    public function __construct()
+    public function factory()
     {
-        if( is_string( $this->dao   ) ) $this->dao   = new $this->dao;
+        if( is_string( $this->dao   ) ) $this->dao   = new $this->dao( Db_Sql::factory() );
         if( is_string( $this->form  ) ) $this->form  = new $this->form;
-        if( is_string( $this->check ) ) $this->check = new $this->check;
-        if( is_string( $this->datum ) ) $this->datum = new $this->datum;
+        if( is_string( $this->check ) ) $this->check = new $this->check( new Pgg_Check() );
+        if( is_string( $this->datum ) ) $this->datum = new $this->datum( $this->form );
     }
 
     /**
