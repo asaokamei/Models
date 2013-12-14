@@ -8,7 +8,7 @@ require_once( dirname(__FILE__).'/FormDemo.php' );
 require_once( dirname(__FILE__).'/CheckDemo.php' );
 require_once( dirname(__FILE__).'/DtoDemo.php' );
 
-class DemoModel extends Models
+class TaskModel extends Models
 {
     var $dao = 'DaoDemo';
     var $form = 'FormDemo';

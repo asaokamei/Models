@@ -1,6 +1,6 @@
 <?php
 
-class CheckDemo extends CheckBase
+class TaskCheck extends CheckBase
 {
 
     /**
