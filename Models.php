@@ -29,21 +29,26 @@ abstract class Models
     /**
      * @var Datum
      */
-    var $datum;
+    var $datum = 'Datum';
+
+    /**
+     * @var string
+     */
+    var $dto = 'DtoGeneric';
     
     // +----------------------------------------------------------------------+
     //  construction of Models.
     // +----------------------------------------------------------------------+
     /**
      * constructor. 
+     * yap, gave up on easy testing. 
      */
-    public function __construct() {}
-
-    /**
-     * @param DaoBase $dao
-     */
-    public function setDao( $dao ) {
-        $this->dao = $dao;
+    public function __construct()
+    {
+        if( is_string( $this->dao   ) ) $this->dao   = new $this->dao;
+        if( is_string( $this->form  ) ) $this->form  = new $this->form;
+        if( is_string( $this->check ) ) $this->check = new $this->check;
+        if( is_string( $this->datum ) ) $this->datum = new $this->datum;
     }
 
     /**
@@ -54,38 +59,24 @@ abstract class Models
     }
 
     /**
-     * @param FormBase $form
+     * @return DbaInterface
      */
-    public function setForm( $form ) {
-        $this->form = $form;
+    public function getDba() {
+        return $this->dao->dba;
     }
 
     /**
-     * @return \FormBase
+     * @return FormBase
      */
     public function getForm() {
         return $this->form;
     }
 
     /**
-     * @param CheckBase $check
-     */
-    public function setCheck( $check ) {
-        $this->check = $check;
-    }
-
-    /**
-     * @return \CheckBase
+     * @return CheckBase
      */
     public function getCheck() {
         return $this->check;
-    }
-
-    /**
-     * @param \Datum $datum
-     */
-    public function setDatum( $datum ) {
-        $this->datum = $datum;
     }
 
     /**
@@ -93,9 +84,6 @@ abstract class Models
      */
     public function getDatum()
     {
-        if( !$this->datum ) {
-            $this->datum = new Datum( $this->form );
-        }
         $datum = $this->datum->factory();
         return $datum;
     }
@@ -128,15 +116,14 @@ abstract class Models
         }
         return false;
     }
-
+    
     // +----------------------------------------------------------------------+
     //  check inputs and data.
     // +----------------------------------------------------------------------+
     /**
      * @param array $data
-     * @return array
+     * @return DtoAbstract|array
      * @throws ValidationFailException
-     * @throws Exception
      */
     public function create( $data )
     {
@@ -144,7 +131,33 @@ abstract class Models
             $this->check->setSource( $data );
         }
         $this->check->validate();
-        return $this->check->popData();
+        $data = $this->check->popData();
+        return $this->toDto( $data );
+    }
+
+    /**
+     * @param $data
+     * @return DtoAbstract|array
+     */
+    public function toDto( $data )
+    {
+        if( $this->dto ) {
+            $data = new $this->dto( $data );
+        }
+        return $data;
+    }
+
+    /**
+     * @param DtoAbstract $dto
+     * @param array       $data
+     * @return \DtoAbstract
+     */
+    public function modify( $dto, $data )
+    {
+        $this->getCheck()->setSource( $data );
+        $this->getCheck()->validate();
+        $dto->set( $this->getCheck()->popData() );
+        return $dto;
     }
     // +----------------------------------------------------------------------+
     //  database access. 
@@ -154,7 +167,7 @@ abstract class Models
      *
      * @param string $id
      * @throws RuntimeException
-     * @return array
+     * @return DtoAbstract|array
      */
     public function findById( $id )
     {
@@ -162,14 +175,14 @@ abstract class Models
         if( !$data ) {
             throw new RuntimeException( "cannot find data for id=" . $this->id );
         }
-        return $data;
+        return $this->toDto( $data );
     }
 
     /**
      * @param $id
-     * @return array
+     * @return DtoAbstract|array
      */
-    public function getById( $id )
+    public function selectById( $id )
     {
         return $this->dao->findById( $id );
     }
@@ -180,7 +193,7 @@ abstract class Models
      */
     public function update( $input )
     {
-        $this->updateBefore( $input );
+        $input = $this->updateBefore( $input );
         $id = $this->getId( $input );
         $this->dao->update( $id, $input );
     }
@@ -193,19 +206,21 @@ abstract class Models
      */
     public function insert( $input )
     {
-        $this->insertBefore( $input );
+        $input = $this->insertBefore( $input );
         return $this->dao->insertId( $input );
     }
 
     /**
-     * a hook method before updating database.
-     * @param array $input
+     * a hook method before inserting database.
+     * @param DtoAbstract|array $input
+     * @return array
      */
     public function insertBefore( $input ) {}
 
     /**
      * a hook method before updating database.
-     * @param array $input
+     * @param DtoAbstract|array $input
+     * @return array
      */
     public function updateBefore( $input ) {}
 
