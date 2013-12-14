@@ -5,27 +5,27 @@
  */
 class Pgg_Check extends Pgg_Value
 {
+    var $types = array(
+        'text'      => array( 'text', 'text' ),
+        'mail'      => array( 'lower', 'mail' ),
+        'katakana'  => array( 'katakana', 'katakana' ),
+        'hiragana'  => array( 'hiragana', 'hiragana' ),
+        'hankana'   => array( 'hankana',   'hankana' ),
+        'date'      => array( 'date', 'date' ),
+        'time'      => array( 'time', 'time' ),
+        'tel'       => array( 'ascii', 'numeric' ),
+    );
     /**
      */
     function construct() {}
 
-    function isText( $key, $required=false, $pattern=null, $message=null ) {
-        return $this->is( $key, 'text', 'text', $required, $pattern, $message );
-    }
-    function isMail( $key, $required=false, $pattern=null, $message=null ) {
-        return $this->is( $key, 'lower', 'mail', $required, $pattern, $message );
-    }
-    function isKana( $key, $required=false, $pattern=null, $message=null ) {
-        return $this->is( $key, 'katakana', 'katakana', $required, $pattern, $message );
-    }
-    function isHanKana( $key, $required=false, $pattern=null, $message=null ) {
-        return $this->is( $key, 'hankana', 'hankana', $required, $pattern, $message );
-    }
-    function isAscii( $key, $required=false, $pattern=null, $message=null ) {
-        return $this->is( $key, 'ascii', 'ascii', $required, $pattern, $message );
-    }
-    function isDate( $key, $required=false, $pattern=null, $message=null ) {
-        return $this->is( $key, 'date', 'date', $required, $pattern, $message );
+    function is( $key, $type, $required=false, $pattern=null, $message=null ) {
+        if( isset( $this->types[$type] ) ) {
+            $set = $this->types[$type];
+        } else {
+            $set = $this->types['text'];
+        }
+        return parent::is( $key, $set[0], $set[1], $required, $pattern, $message );
     }
 }
 
@@ -215,7 +215,7 @@ class Pgg_Error
         'mail'      => 'メールアドレスです',
         'ascii'     => '半角英数字のみです',
         'katakana'  => 'カタカナのみです。',
-        'Hiragana'  => 'ひらがなのみです',
+        'hiragana'  => 'ひらがなのみです',
         'pattern '  => '文字を確認ください',
         'date'      => '日付を入力ください',
     );
