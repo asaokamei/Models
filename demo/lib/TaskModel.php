@@ -10,8 +10,8 @@ require_once( dirname( __FILE__ ) . '/TaskDto.php' );
 
 class TaskModel extends Models
 {
-    var $dao = 'DaoDemo';
-    var $form = 'FormDemo';
-    var $check = 'CheckDemo';
-    //var $dto   = 'DtoDemo';
+    var $dao   = 'TaskDao';
+    var $form  = 'TaskForm';
+    var $check = 'TaskCheck';
+    var $dto   = 'TaskDto';
 }
