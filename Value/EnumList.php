@@ -61,4 +61,11 @@ abstract class EnumList implements EnumInterface
         return $labels;
     }
 
+    /**
+     * @return string
+     */
+    public function __toString()
+    {
+        return "'" . implode( "','", $this->toValue() ) . "'";
+    }
 }
