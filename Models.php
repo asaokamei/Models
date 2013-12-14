@@ -44,7 +44,7 @@ abstract class Models
      * constructor. 
      * yap, gave up on easy testing. 
      */
-    public function factory()
+    public function materialize()
     {
         if( is_string( $this->dao   ) ) $this->dao   = new $this->dao( Db_Sql::factory() );
         if( is_string( $this->form  ) ) $this->form  = new $this->form;
@@ -174,7 +174,7 @@ abstract class Models
     {
         $data = $this->dao->findById( $id );
         if( !$data ) {
-            throw new RuntimeException( "cannot find data for id=" . $this->id );
+            throw new RuntimeException( "cannot find data for id=" . $id );
         }
         return $this->toDto( $data );
     }
