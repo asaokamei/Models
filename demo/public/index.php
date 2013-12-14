@@ -1,5 +1,5 @@
 <?php
-require_once( dirname(__FILE__).'/../lib/DemoModel.php' );
+require_once( dirname( __FILE__ ) . '/../lib/TaskModel.php' );
 
-$model = new DemoModel();
+$model = new TaskModel();
 $model->factory();
