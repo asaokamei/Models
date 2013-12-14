@@ -19,7 +19,7 @@ class Pgg_Check extends Pgg_Value
      */
     function construct() {}
 
-    function is( $key, $type, $required=false, $pattern=null, $message=null ) {
+    function push( $key, $type, $required=false, $pattern=null, $message=null ) {
         if( isset( $this->types[$type] ) ) {
             $set = $this->types[$type];
         } else {
