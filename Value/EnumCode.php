@@ -53,4 +53,12 @@ abstract class EnumCode implements EnumInterface
     {
         return $this->codes[ $this->value ];
     }
+
+    /**
+     * @return string
+     */
+    public function __toString()
+    {
+        return (string) $this->toValue();
+    }
 }

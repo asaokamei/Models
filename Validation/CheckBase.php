@@ -1,7 +1,27 @@
 <?php
 
-class ValidationFailException extends RuntimeException {}
+class ValidationFailException extends RuntimeException 
+{
+    var $data = array();
+    var $error = array();
+    
+    function set( $data, $error=array() ) {
+        $this->data = $data;
+        $this->error = $error;
+    }
+    
+    function getData() {
+        return $this->data;
+    }
+    
+    function getError() {
+        return $this->error;
+    }
+}
 
+/**
+ * Class CheckBase
+ */
 abstract class CheckBase
 {
     /**
@@ -23,6 +43,19 @@ abstract class CheckBase
      * @return int
      */
     abstract function check();
+
+    /**
+     * @throw ValidationFailException
+     */
+    function validate()
+    {
+        $this->check();
+        if( !$this->isValid() ) {
+            $e = new ValidationFailException();
+            $e->set( $this->popData(), $this->popErrors() );
+            throw new $e;
+        }
+    }
 
     /**
      * @param array $data

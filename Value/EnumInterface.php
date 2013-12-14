@@ -21,4 +21,9 @@ interface EnumInterface
      * @return string[]
      */
     public function toLabel();
+
+    /**
+     * @return string
+     */
+    public function __toString();
 }

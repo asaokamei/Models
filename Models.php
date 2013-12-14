@@ -29,34 +29,26 @@ abstract class Models
     /**
      * @var Datum
      */
-    var $datum;
-    
+    var $datum = 'Datum';
+
     /**
      * @var string
      */
-    var $id;
-
-    /**
-     * last data and errors from check, create, findById, etc.
-     *
-     * @var array
-     */
-    var $lastData = array();
-    var $lastError = array();
-
+    var $dto = 'DtoGeneric';
+    
     // +----------------------------------------------------------------------+
     //  construction of Models.
     // +----------------------------------------------------------------------+
     /**
      * constructor. 
+     * yap, gave up on easy testing. 
      */
-    public function __construct() {}
-
-    /**
-     * @param DaoBase $dao
-     */
-    public function setDao( $dao ) {
-        $this->dao = $dao;
+    public function __construct()
+    {
+        if( is_string( $this->dao   ) ) $this->dao   = new $this->dao;
+        if( is_string( $this->form  ) ) $this->form  = new $this->form;
+        if( is_string( $this->check ) ) $this->check = new $this->check;
+        if( is_string( $this->datum ) ) $this->datum = new $this->datum;
     }
 
     /**
@@ -67,38 +59,24 @@ abstract class Models
     }
 
     /**
-     * @param FormBase $form
+     * @return DbaInterface
      */
-    public function setForm( $form ) {
-        $this->form = $form;
+    public function getDba() {
+        return $this->dao->dba;
     }
 
     /**
-     * @return \FormBase
+     * @return FormBase
      */
     public function getForm() {
         return $this->form;
     }
 
     /**
-     * @param CheckBase $check
-     */
-    public function setCheck( $check ) {
-        $this->check = $check;
-    }
-
-    /**
-     * @return \CheckBase
+     * @return CheckBase
      */
     public function getCheck() {
         return $this->check;
-    }
-
-    /**
-     * @param \Datum $datum
-     */
-    public function setDatum( $datum ) {
-        $this->datum = $datum;
     }
 
     /**
@@ -106,11 +84,7 @@ abstract class Models
      */
     public function getDatum()
     {
-        if( !$this->datum ) {
-            $this->datum = new Datum( $this->form );
-        }
         $datum = $this->datum->factory();
-        $datum->set( $this->lastData, $this->lastError );
         return $datum;
     }
 
@@ -125,160 +99,129 @@ abstract class Models
     }
 
     /**
-     * @param string $id
-     */
-    public function setId( $id ) {
-        $this->id = $id;
-    }
-
-    /**
-     * @return string
-     */
-    public function getId()
-    {
-        return $this->id;
-    }
-
-    /**
+     * @param null|array  $input
      * @param null|string $reg
      * @throws RuntimeException
      * @return string
      */
-    public function pushId( $reg=null ) 
+    public function getId( $input=null, $reg=null ) 
     {
         if( !$reg ) $reg = '[-_0-9a-zA-Z]*';
-        $this->id = $this->check->pgg->pushChar( $this->getIdName(), PGG_VALUE_MUST_EXIST, $reg );
-        if( !$this->id ) {
-            throw new RuntimeException( "no id found for: ". $this->getIdName() );
+        if( !$input ) $input = $_REQUEST;
+        if( isset( $input[ $this->dao->id_name ] ) ) {
+            $id = $input[ $this->dao->id_name ];
+            if( preg_match( "/{$reg}/", $id ) ) {
+                return $id;
+            }
         }
-        return $this->id;
+        return false;
     }
-
-    /**
-     * @param $data
-     * @param array $error
-     */
-    protected function merge( $data, $error=array() )
-    {
-        $this->lastData = array_merge( $this->lastData, $data );
-        if( $error ) {
-            $this->lastError = array_merge( $this->lastError, $error );
-        }
-    }
-
-    /**
-     * empties lastData and lastErrors.
-     */
-    public function resetData() {
-        $this->lastData = $this->lastError = array();
-    }
-
+    
     // +----------------------------------------------------------------------+
     //  check inputs and data.
     // +----------------------------------------------------------------------+
     /**
      * @param array $data
-     * @return array
+     * @return DtoAbstract|array
      * @throws ValidationFailException
-     * @throws Exception
      */
     public function create( $data )
-    {
-        try {
-
-            $dto = $this->check( $data );
-            $this->merge( $dto );
-            return $dto;
-
-        } catch ( ValidationFailException $e ) {
-
-            $this->merge( $this->check->popData(), $this->check->popErrors() );
-            throw $e;
-
-        } catch ( Exception $e ) {
-            throw $e;
-        }
-    }
-
-    /**
-     * checks input data ($data) and returns validated data.
-     *
-     * @param $data
-     * @throws ValidationFailException
-     * @return array
-     */
-    public function check( $data=null )
     {
         if( $data ) {
             $this->check->setSource( $data );
         }
-        $this->check->check();
-        if( !$this->check->isValid() ) {
-            throw new ValidationFailException();
-        }
-        return $this->check->popData();
+        $this->check->validate();
+        $data = $this->check->popData();
+        return $this->toDto( $data );
     }
 
+    /**
+     * @param $data
+     * @return DtoAbstract|array
+     */
+    public function toDto( $data )
+    {
+        if( $this->dto ) {
+            $data = new $this->dto( $data );
+        }
+        return $data;
+    }
+
+    /**
+     * @param DtoAbstract $dto
+     * @param array       $data
+     * @return \DtoAbstract
+     */
     public function modify( $dto, $data )
     {
-        $dto = array_merge( $dto, $data );
+        $this->getCheck()->setSource( $data );
+        $this->getCheck()->validate();
+        $dto->set( $this->getCheck()->popData() );
         return $dto;
     }
-
     // +----------------------------------------------------------------------+
     //  database access. 
     // +----------------------------------------------------------------------+
     /**
      * finds data for id from database.
      *
-     * @param null|string $id
+     * @param string $id
      * @throws RuntimeException
-     * @return Datum
+     * @return DtoAbstract|array
      */
-    public function findById( $id=null )
+    public function findById( $id )
     {
-        if( $id ) {
-            $this->id = $id;
-        }
-        $data = $this->dao->findById( $this->id );
+        $data = $this->dao->findById( $id );
         if( !$data ) {
             throw new RuntimeException( "cannot find data for id=" . $this->id );
         }
-        $this->merge( $data );
-        return $data;
+        return $this->toDto( $data );
+    }
+
+    /**
+     * @param $id
+     * @return DtoAbstract|array
+     */
+    public function selectById( $id )
+    {
+        return $this->dao->findById( $id );
     }
 
     /**
      * update database for $this->id with $input array.
-     * @param $id
-     * @param $input
+     * @param array $input
      */
-    public function update( $id, $input )
+    public function update( $input )
     {
-        $this->updateBefore();
+        $input = $this->updateBefore( $input );
+        $id = $this->getId( $input );
         $this->dao->update( $id, $input );
     }
 
     /**
      * insert $input data into database.
      *
-     * @param $input
+     * @param array $input
      * @return string
      */
     public function insert( $input )
     {
-        $this->insertBefore();
+        $input = $this->insertBefore( $input );
         return $this->dao->insertId( $input );
     }
 
     /**
-     * a hook method before updating database.
+     * a hook method before inserting database.
+     * @param DtoAbstract|array $input
+     * @return array
      */
-    public function insertBefore() {}
+    public function insertBefore( $input ) {}
 
     /**
      * a hook method before updating database.
+     * @param DtoAbstract|array $input
+     * @return array
      */
-    public function updateBefore() {}
+    public function updateBefore( $input ) {}
 
 }
