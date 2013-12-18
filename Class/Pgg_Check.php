@@ -6,14 +6,14 @@
 class Pgg_Check extends Pgg_Value
 {
     var $types = array(
-        'text'      => array( 'text', 'text' ),
-        'mail'      => array( 'lower', 'mail' ),
-        'katakana'  => array( 'katakana', 'katakana' ),
-        'hiragana'  => array( 'hiragana', 'hiragana' ),
-        'hankana'   => array( 'hankana',   'hankana' ),
-        'date'      => array( 'date', 'date' ),
-        'time'      => array( 'time', 'time' ),
-        'tel'       => array( 'ascii', 'numeric' ),
+        'text'      => array( 'text', 'text', '' ),
+        'mail'      => array( 'lower', 'mail', '' ),
+        'katakana'  => array( 'katakana', 'katakana', '' ),
+        'hiragana'  => array( 'hiragana', 'hiragana', '' ),
+        'hankana'   => array( 'hankana',   'hankana', '' ),
+        'date'      => array( 'date', 'date', null ),
+        'time'      => array( 'time', 'time', null ),
+        'tel'       => array( 'ascii', 'numeric', '' ),
     );
     /**
      */
@@ -34,7 +34,7 @@ class Pgg_Check extends Pgg_Value
         } else {
             $set = $this->types['text'];
         }
-        return parent::is( $key, $set[0], $set[1], $required, $pattern, $message );
+        return parent::is( $key, $set[0], $set[1], $required, $pattern, $set[2], $message );
     }
 }
 
@@ -106,9 +106,10 @@ class Pgg_Value
         // missing value. 
         if( !$value ) {
             if( $required ) {
-                $this->setError( $key, $default, 'required' );
+                $this->setError( $key, false, 'required' );
                 return false;
             }
+            $this->checked[ $key ] = $default;
             return $default; // return the default value. 
         }
         
@@ -302,12 +303,12 @@ class Pgg_Filter
     }
 
     static function getLower( $value ) {
-        $value = self::getText( $value );
+        $value = self::getAscii( $value );
         return strtolower( $value );
     }
 
     static function getUpper( $value ) {
-        $value = self::getText( $value );
+        $value = self::getAscii( $value );
         return strtoupper( $value );
     }
 
@@ -326,6 +327,9 @@ class Pgg_Filter
     static function getAscii( $value ) {
         $value = self::getText( $value );
         $value = mb_convert_kana( $value, 'as' );
+        $value = str_replace( 
+            array( '＠', '（', '）', 'ー', '＜', '＞', '！', '＃', '＄', '％', '＆',   ), 
+            array(  '@',  '(',  ')',  '-',  '<',  '>', '!', '#', '$', '%', '&',  ), $value );
         return $value;
     }
 
