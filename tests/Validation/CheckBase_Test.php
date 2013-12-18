@@ -90,4 +90,18 @@ class CheckBase_Test extends PHPUnit_Framework_TestCase
         $this->assertEquals( false, $pop['test'] );
         $this->assertEquals( '入力必須です', $err['test'] );
     }
+
+    /**
+     * @test
+     */
+    function push_katakana_only()
+    {
+        $source = array( 'test' => 'あいうえお' );
+        $this->pgg->setSource( $source );
+        $got = $this->pgg->push( 'test', 'katakana' );
+        $pop = $this->pgg->popData();
+        $this->assertEquals( true, $this->pgg->isValid() );
+        $this->assertEquals( 'test@example.com', $got );
+        $this->assertEquals( 'test@example.com', $pop['test'] );
+    }
 }
