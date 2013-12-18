@@ -19,7 +19,16 @@ class Pgg_Check extends Pgg_Value
      */
     function construct() {}
 
-    function push( $key, $type, $required=false, $pattern=null, $message=null ) {
+    /**
+     * @param string $key
+     * @param string $type
+     * @param bool   $required
+     * @param null   $pattern
+     * @param null   $message
+     * @return bool|string
+     */
+    function push( $key, $type, $required=false, $pattern=null, $message=null ) 
+    {
         if( isset( $this->types[$type] ) ) {
             $set = $this->types[$type];
         } else {
@@ -42,6 +51,18 @@ class Pgg_Value
     
     var $isValid = true;
 
+    /**
+     * @param array $source
+     * @param bool  $reset
+     */
+    function setSource( $source, $reset=false ) 
+    {
+        if( $reset ) {
+            $this->source = $source;
+        } else {
+            $this->source = array_merge( $this->source, $source );            
+        }
+    }
     /**
      * @return array
      */
@@ -98,7 +119,7 @@ class Pgg_Value
         }
         
         // check pattern
-        if( !$this->pattern( $value, $pattern ) ) {
+        if( $pattern && !$this->pattern( $value, $pattern ) ) {
             $this->setError( $key, $value, 'pattern', $message );
             return false;
         }
@@ -266,12 +287,12 @@ class Pgg_Filter
         }
         return self::getAscii( $value );
     }
-    
-    function getBinary( $value ) {
+
+    static function getBinary( $value ) {
         return $value;
     }
-    
-    function getText( $value )
+
+    static function getText( $value )
     {
         if( !mb_check_encoding( $value, 'UTF-8' ) ) {
             return '';
@@ -279,42 +300,42 @@ class Pgg_Filter
         $value = mb_convert_kana( $value, 'KV' );
         return $value;
     }
-    
-    function getLower( $value ) {
+
+    static function getLower( $value ) {
         $value = self::getText( $value );
         return strtolower( $value );
     }
 
-    function getUpper( $value ) {
+    static function getUpper( $value ) {
         $value = self::getText( $value );
         return strtoupper( $value );
     }
 
-    function getKatakana( $value ) {
+    static function getKatakana( $value ) {
         $value = self::getText( $value );
         $value = mb_convert_kana( $value, 'C' );
         return $value;
     }
-    
-    function getHiragana( $value ) {
+
+    static function getHiragana( $value ) {
         $value = self::getText( $value );
         $value = mb_convert_kana( $value, 'c' );
         return $value;
     }
-    
-    function getAscii( $value ) {
+
+    static function getAscii( $value ) {
         $value = self::getText( $value );
         $value = mb_convert_kana( $value, 'as' );
         return $value;
     }
 
-    function getZenkaku( $value ) {
+    static function getZenkaku( $value ) {
         $value = self::getText( $value );
         $value = mb_convert_kana( $value, 'AS' );
         return $value;
     }
-    
-    function getHanKana( $value ) {
+
+    static function getHanKana( $value ) {
         if( !mb_check_encoding( $value, 'UTF-8' ) ) {
             return '';
         }
@@ -346,26 +367,29 @@ class Pgg_Validate
     static function is( $value, $type='text' )
     {
         $method = 'is' . ucwords( $type );
-        return self::$method( $value );
+        if( method_exists( 'Pgg_Validate', $method ) ) {
+            return self::$method( $value );
+        }
+        return $value;
     }
 
-    function isMail( $value ) {
+    static function isMail( $value ) {
         return (bool) preg_match( '/^([a-zA-Z0-9])+([a-zA-Z0-9\._-])*@([a-zA-Z0-9_-])+([a-zA-Z0-9\._-]+)+$/', $value );
     }
-    
-    function isCode( $value ) {
+
+    static function isCode( $value ) {
         return (bool) preg_match( '/[-_0-9a-zA-Z]+/', $value );
     }
 
-    function isKatakana( $value ) {
+    static function isKatakana( $value ) {
         return (bool) preg_match( "/^[ァ-ヶー]+$/u", $value );
     }
 
-    function isHiragana( $value ) {
+    static function isHiragana( $value ) {
         return (bool) preg_match( "/^[ぁ-ん]+$/u", $value );
     }
 
-    function isDate( $value ) {
+    static function isDate( $value ) {
         try {
             new DateTime( $value );
             return true;
