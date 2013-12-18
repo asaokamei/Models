@@ -6,14 +6,14 @@
 class Pgg_Check extends Pgg_Value
 {
     var $types = array(
-        'text'      => array( 'text', 'text', '' ),
-        'mail'      => array( 'lower', 'mail', '' ),
-        'katakana'  => array( 'katakana', 'katakana', '' ),
-        'hiragana'  => array( 'hiragana', 'hiragana', '' ),
-        'hankana'   => array( 'hankana',   'hankana', '' ),
-        'date'      => array( 'date', 'date', null ),
-        'time'      => array( 'time', 'time', null ),
-        'tel'       => array( 'ascii', 'numeric', '' ),
+        'text'      => array( 'filter' => 'text',     'check' => 'text',     'default' => '' ),
+        'mail'      => array( 'filter' => 'lower',    'check' => 'mail',     'default' => '' ),
+        'katakana'  => array( 'filter' => 'katakana', 'check' => 'katakana', 'default' => '' ),
+        'hiragana'  => array( 'filter' => 'hiragana', 'check' => 'hiragana', 'default' => '' ),
+        'hankana'   => array( 'filter' => 'hankana',  'check' =>  'hankana', 'default' => '' ),
+        'date'      => array( 'filter' => 'date',     'check' => 'date',     'default' => null ),
+        'time'      => array( 'filter' => 'time',     'check' => 'time',     'default' => null ),
+        'tel'       => array( 'filter' => 'ascii',    'check' => 'numeric',  'default' => '' ),
     );
     /**
      */
@@ -34,7 +34,11 @@ class Pgg_Check extends Pgg_Value
         } else {
             $set = $this->types['text'];
         }
-        return parent::is( $key, $set[0], $set[1], $required, $pattern, $set[2], $message );
+        $set[ 'required' ] = $required;
+        $set[ 'pattern'  ] = $pattern;
+        $set[ 'message'  ] = $message;
+        
+        return parent::is( $key, $set );
     }
 }
 
@@ -86,42 +90,44 @@ class Pgg_Value
 
     /**
      * @param string $key
-     * @param string $filter
-     * @param string $check
-     * @param bool   $required
-     * @param string $pattern
-     * @param string $default
-     * @param null   $message
-     * @internal param string $key
+     * @param array  $option
      * @return bool|string
      */
-    function is( $key, $filter='text', $check='text', $required=false, $pattern='', $default='', $message=null )
+    function is( $key, $option=array() )
     {
+        $defaultOption = array(
+            'filter'   => 'text',
+            'check'    => 'text',
+            'required' => false,
+            'pattern'  => '',
+            'default'  => '',
+            'message'  => '',
+        );
+        $option = $option + $defaultOption;
         // get a value
-        $value = (string) $this->getRaw( $key, $filter );
+        $value = (string) $this->getRaw( $key, $option['filter'] );
 
         // filter the value.
-        $value = $this->filter( $value, $filter );
+        $value = $this->filter( $value, $option['filter'] );
         
         // missing value. 
         if( !$value ) {
-            if( $required ) {
+            if( $option['required'] ) {
                 $this->setError( $key, false, 'required' );
                 return false;
             }
-            $this->checked[ $key ] = $default;
-            return $default; // return the default value. 
+            return $this->checked[ $key ] = $option['default'];
         }
         
         // validates the value.  
-        if( !$this->check( $value, $check, $pattern ) ) {
-            $this->setError( $key, $value, $check, $message );
+        if( !$this->check( $value, $option['check'], $option['pattern'] ) ) {
+            $this->setError( $key, $value, $option['check'], $option['message'] );
             return false;
         }
         
         // check pattern
-        if( $pattern && !$this->pattern( $value, $pattern ) ) {
-            $this->setError( $key, $value, 'pattern', $message );
+        if( $option['pattern'] && !$this->pattern( $value, $option['pattern'] ) ) {
+            $this->setError( $key, $value, 'pattern', $option['message'] );
             return false;
         }
         $this->checked[ $key ] = $value;
